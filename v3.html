@@ -341,22 +341,85 @@ select:focus{outline:none;border-color:var(--brown)}
 <div class="update-time" id="updateTime"></div>
 
 <script>
+// ========= DATA =========
+// วันที่ในรูปแบบ m/d/yy (พ.ศ. 2 หลัก) ตรงกับ Google Sheet
+// eligibleDate = คอลัมน์ D "วันที่ประกาศประเมินบุคคล"
+let DATA=[];
 
-// ========= LOADING OVERLAY CSS =========
-const _style = document.createElement('style');
-_style.textContent = '.ld-ov{position:fixed;inset:0;background:#F5F0E8;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-family:inherit} .ld-sp{width:36px;height:36px;border:3px solid #C8BCAA;border-top-color:#7A6048;border-radius:50%;animation:ld-spin .8s linear infinite} @keyframes ld-spin{to{transform:rotate(360deg)}} .ld-txt{font-size:13px;color:#7A6E5F} .ld-dbg{font-size:11px;color:#7A6E5F;max-width:360px;text-align:left} .ld-err{background:#F5E8E8;border:1px solid #9A3030;border-radius:8px;padding:12px 16px;color:#6A1E1E;font-size:13px;max-width:380px;text-align:center;display:none} .ld-btn{display:none;padding:7px 18px;border-radius:8px;border:1px solid #C8BCAA;background:#EDE8DE;cursor:pointer;font-family:inherit;font-size:13px}';
-document.head.appendChild(_style);
+// ========= LIVE DATA LOADER =========
+(function(){
+  const s=document.createElement('style');
+  s.textContent='.ld-ov{position:fixed;inset:0;background:#F5F0E8;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-family:inherit}.ld-sp{width:32px;height:32px;border:3px solid #C8BCAA;border-top-color:#7A6048;border-radius:50%;animation:ld-s .8s linear infinite}@keyframes ld-s{to{transform:rotate(360deg)}}.ld-t{font-size:13px;color:#7A6E5F}.ld-d{font-size:11px;color:#7A6E5F}.ld-e{background:#F5E8E8;border:1px solid #9A3030;border-radius:8px;padding:10px 14px;color:#6A1E1E;font-size:13px;max-width:360px;text-align:center;display:none}.ld-b{display:none;padding:6px 16px;border-radius:8px;border:1px solid #C8BCAA;background:#EDE8DE;cursor:pointer;font-size:13px}';
+  document.head.appendChild(s);
+  const ov=document.createElement('div');ov.id='ldOv';ov.className='ld-ov';
+  ov.innerHTML='<div class="ld-sp"></div><div class="ld-t" id="ldT">กำลังโหลดข้อมูล...</div><div class="ld-d" id="ldD"></div><div class="ld-e" id="ldE"></div><button class="ld-b" id="ldB" onclick="loadData()">๐Ÿ"„ ลองอีกครั้ง</button>';
+  document.body.appendChild(ov);
+})();
 
-// ========= LOADING OVERLAY HTML =========
-const _ov = document.createElement('div');
-_ov.className = 'ld-ov';
-_ov.id = 'ldOv';
-_ov.innerHTML = '<div class="ld-sp"></div><div class="ld-txt" id="ldTxt">กำลังโหลดข้อมูลจาก Google Sheet...</div><div class="ld-dbg" id="ldDbg"></div><div class="ld-err" id="ldErr"></div><button class="ld-btn" id="ldBtn" onclick="loadData()">🔄 ลองอีกครั้ง</button>';
-document.body.appendChild(_ov);
+function _dbg(m){const e=document.getElementById('ldD');if(e)e.innerHTML+='<div>→ '+m+'</div>';}
 
-function dbg(m){ const el=document.getElementById('ldDbg'); if(el) el.innerHTML += '<div>→ '+m+'</div>'; console.log('[C8]',m); }
+function _parseCSV(t){
+  const rows=[];let row=[],f='',q=false;
+  for(let i=0;i<t.length;i++){
+    const c=t[i],n=t[i+1];
+    if(q){if(c==='"'&&n==='"'){f+='"';i++;}else if(c==='"')q=false;else f+=c;}
+    else{if(c==='"')q=true;else if(c===','){row.push(f.trim());f='';}
+    else if(c==='\r'&&n==='\n'){row.push(f.trim());rows.push(row);row=[];f='';i++;}
+    else if(c==='\n'||c==='\r'){row.push(f.trim());rows.push(row);row=[];f='';}
+    else f+=c;}
+  }
+  if(f||row.length){row.push(f.trim());rows.push(row);}
+  return rows;
+}
 
-// ========= PARSEDATE (needed for sort) =========
+function _cvt(d){
+  if(!d||!d.trim())return'';
+  const p=d.split('/');if(p.length!==3)return d;
+  let y=parseInt(p[2]);if(isNaN(y))return d;
+  if(y>=2000)y=y-2000+43;else if(y<100)y=y+43;
+  return p[0]+'/'+p[1]+'/'+y;
+}
+
+async function loadData(){
+  const ov=document.getElementById('ldOv'),eEl=document.getElementById('ldE'),bEl=document.getElementById('ldB'),dEl=document.getElementById('ldD'),tEl=document.getElementById('ldT');
+  if(ov)ov.style.display='flex';if(eEl)eEl.style.display='none';if(bEl)bEl.style.display='none';if(dEl)dEl.innerHTML='';if(tEl)tEl.textContent='กำลังโหลดข้อมูล...';
+  try{
+    _dbg('โหลด CSV จาก Google Sheets...');
+    const url='https://docs.google.com/spreadsheets/d/1hbXCaO8spDuEJ8Yqji4YcWUmuKkYEHX4QmWgewGZ3zg/export?format=csv&gid=0';
+    const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),15000);
+    const res=await fetch(url,{signal:ctrl.signal});clearTimeout(tid);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const txt=await res.text();
+    if(txt.trim().startsWith('<'))throw new Error('Sheet ไม่ public');
+    _dbg('CSV ✓ ('+txt.split('\n').length+' แถว)');
+    const rows=_parseCSV(txt).slice(2);
+    DATA=rows.filter(c=>c.length>=3&&c[1]&&c[1].trim()).map((c,i)=>{
+      const g=j=>(c[j]||'').trim();
+      const r2s=g(12),r2c=g(13),r2e=g(14),r2r=g(15),r2d=g(16),r2o=g(17);
+      const hr2=r2s||r2c||r2e||r2r||r2d||r2o;
+      return {id:i+1,name:g(1),pos:g(2),eligibleDate:_cvt(g(3)),
+        r1:{submit:_cvt(g(4)),check:g(5),sent:_cvt(g(6)),result:g(7),resultDate:_cvt(g(8)),deadline:_cvt(g(9)),order:_cvt(g(10))},
+        r2:hr2?{submit:_cvt(r2s),check:r2c,sent:_cvt(r2e),result:r2r,resultDate:_cvt(r2d),order:_cvt(r2o)}:null,
+        note:g(11)};
+    }).sort((a,b)=>{
+      const da=parseDate(a.r1&&a.r1.submit||''),db=parseDate(b.r1&&b.r1.submit||'');
+      if(!da&&!db)return 0;if(!da)return 1;if(!db)return-1;return da-db;
+    });
+    _dbg('DATA ✓ '+DATA.length+' รายการ');
+    const pos=[...new Set(DATA.map(p=>p.pos).filter(Boolean))].sort();
+    const sel=document.getElementById('posF');
+    if(sel)sel.innerHTML='<option value="">ทุกตำแหน่ง/ระดับ</option>'+pos.map(p=>'<option value="'+p+'">'+p+'</option>').join('');
+    if(ov)ov.style.display='none';
+    render();
+  }catch(e){
+    console.error(e);
+    if(eEl){eEl.textContent='โหลดไม่สำเร็จ: '+e.message;eEl.style.display='block';}
+    if(bEl)bEl.style.display='block';
+    if(tEl)tEl.textContent='โหลดข้อมูลไม่สำเร็จ';
+  }
+}
+
+// ========= UTILS =========
 function parseDate(s){
   if(!s) return null;
   const p=s.split('/');
@@ -365,97 +428,352 @@ function parseDate(s){
   if(y<100) y+=2500;
   return new Date(y-543,parseInt(p[0])-1,parseInt(p[1]));
 }
+function diffDays(a,b){if(!a||!b)return null;return Math.round(Math.abs(b-a)/86400000);}
+function fmt(s){return s||'—'}
+function ini(n){return n.replace(/^(นาย|นาง|นางสาว)/,'').trim().charAt(0);}
+function getEligYear(p){const d=parseDate(p.eligibleDate);return d?d.getFullYear()+543:null;}
+function getDaysFromEligToOrder(p){
+  const elig=parseDate(p.eligibleDate);if(!elig)return null;
+  const ord=p.r2&&p.r2.order?parseDate(p.r2.order):p.r1&&p.r1.order?parseDate(p.r1.order):null;
+  return ord?diffDays(elig,ord):null;
+}
 
-// ========= CSV PARSER =========
-function parseCSV(text){
-  const rows=[]; let row=[],field='',inQ=false;
-  for(let i=0;i<text.length;i++){
-    const c=text[i],n=text[i+1];
-    if(inQ){ if(c==='"'&&n==='"'){field+='"';i++;} else if(c==='"')inQ=false; else field+=c; }
-    else{ if(c==='"'){inQ=true;} else if(c===','){row.push(field.trim());field='';} else if(c==='\r'&&n==='\n'){row.push(field.trim());rows.push(row);row=[];field='';i++;} else if(c==='\n'||c==='\r'){row.push(field.trim());rows.push(row);row=[];field='';} else field+=c; }
+// ========= STATUS =========
+function isPassR1(p){return p.r1&&p.r1.result&&p.r1.result.includes('ผ่านการประเมิน')&&!p.r1.result.includes('ไม่ผ่าน');}
+function isPassR2(p){return p.r2&&p.r2.result&&p.r2.result.includes('ผ่านการประเมิน')&&!p.r2.result.includes('ไม่ผ่าน');}
+function isPass(p){return isPassR1(p)||isPassR2(p);}
+function isFailR1(p){return p.r1&&p.r1.result&&p.r1.result.includes('ไม่ผ่านการประเมิน');}
+function isFailR2(p){return p.r2&&p.r2.result&&p.r2.result.includes('ไม่ผ่านการประเมิน');}
+function isFail(p){return isFailR1(p)||isFailR2(p);}
+function isFixType(p){return p.r1&&p.r1.result&&p.r1.result.includes('ปรับปรุงแก้ไข');}
+function isPendingR2(p){return p.r2&&p.r2.pending===true;}
+function hasSentR2(p){return p.r2&&!p.r2.pending&&p.r2.submit;}
+function getStatus(p){
+  if(isPass(p)) return 'pass';
+  if(isFail(p)&&!isFixType(p)) return 'fail';
+  if(isFixType(p)) return 'fix';
+  return 'inprog';
+}
+function overallLabel(p){
+  const s=getStatus(p);
+  if(s==='pass') return isPassR2(p)?{t:'ผ่าน (รอบ 2)',b:'b-green',d:'d-g',av:'av-g'}:{t:'ผ่าน (รอบ 1)',b:'b-green',d:'d-g',av:'av-g'};
+  if(s==='fail') return {t:'ไม่ผ่านการประเมิน',b:'b-red',d:'d-r',av:'av-r'};
+  if(s==='fix'){
+    const is6=p.r1.result.includes('เป็นสาระสำคัญ')&&!p.r1.result.includes('ไม่เป็น');
+    if(!hasSentR2(p)||isPendingR2(p)) return {t:is6?'กำลังแก้ไข (6 เดือน)':'กำลังแก้ไข (2 เดือน)',b:'b-amber',d:'d-a',av:'av-a'};
+    return {t:is6?'ส่งรอบ 2 (6 เดือน)':'ส่งรอบ 2 (2 เดือน)',b:'b-purple',d:'d-p',av:'av-p'};
   }
-  if(field||row.length){row.push(field.trim());rows.push(row);}
-  return rows;
+  return {t:'ระหว่างดำเนินงาน',b:'b-blue',d:'d-b',av:'av-b'};
+}
+function getR1Lbl(r){
+  if(!r) return '—';
+  if(r.order) return 'ทำคำสั่งแล้ว';
+  if(r.result&&r.result.includes('ผ่านการประเมิน')&&!r.result.includes('ไม่ผ่าน')) return 'ผ่านการประเมิน';
+  if(r.result&&r.result.includes('ไม่ผ่าน')) return 'ไม่ผ่าน';
+  if(r.result&&r.result.includes('ปรับปรุงแก้ไข')) return r.result.includes('เป็นสาระสำคัญ')&&!r.result.includes('ไม่เป็น')?'ปรับปรุงแก้ไข (6 เดือน)':'ปรับปรุงแก้ไข (2 เดือน)';
+  if(r.result&&r.result.includes('ระหว่าง')) return 'ระหว่างประเมิน';
+  if(r.sent) return 'ส่งหน่วยประเมินแล้ว';
+  return r.check||'ตรวจสอบเอกสาร';
+}
+function getR2Lbl(p){
+  if(!p.r2) return '—';
+  const r=p.r2;
+  if(isPendingR2(p)) return 'กำลังดำเนินการแก้ไข';
+  if(r.order) return 'ทำคำสั่งแล้ว';
+  if(r.result&&r.result.includes('ผ่านการประเมิน')&&!r.result.includes('ไม่ผ่าน')) return 'ผ่านการประเมิน';
+  if(r.result&&r.result.includes('ไม่ผ่าน')) return 'ไม่ผ่าน';
+  if(r.result&&r.result.includes('ระหว่าง')) return 'ระหว่างประเมิน';
+  if(r.sent) return 'ส่งหน่วยประเมินแล้ว';
+  if(r.check) return r.check;
+  return 'รอส่งเอกสาร';
+}
+function badgeCls(lbl){
+  if(lbl.includes('ผ่านการประเมิน')) return 'b-green';
+  if(lbl.includes('ไม่ผ่าน')) return 'b-red';
+  if(lbl.includes('ปรับปรุง')||lbl.includes('แก้ไข')||lbl.includes('กำลัง')) return 'b-amber';
+  if(lbl.includes('คำสั่ง')) return 'b-teal';
+  return 'b-blue';
+}
+function calcDays(r){
+  if(!r) return [];
+  const d=[];
+  const s=parseDate(r.submit),se=parseDate(r.sent),rd=parseDate(r.resultDate),od=parseDate(r.order);
+  if(s&&se){const n=diffDays(s,se);if(n!==null)d.push({n,lbl:'ส่ง → หน่วยประเมิน'});}
+  if(se&&rd){const n=diffDays(se,rd);if(n!==null)d.push({n,lbl:'ประเมิน → ผล'});}
+  if(rd&&od){const n=diffDays(rd,od);if(n!==null)d.push({n,lbl:'ผล → คำสั่ง'});}
+  return d;
 }
 
-// ========= DATE CONVERSION BE→display =========
-function cvtBE(d){
-  if(!d||!d.trim())return'';
-  const p=d.split('/'); if(p.length!==3)return d;
-  let y=parseInt(p[2]); if(isNaN(y))return d;
-  if(y>=2000)y=y-2000+43; else if(y<100)y=y+43;
-  return p[0]+'/'+p[1]+'/'+y;
+// ========= FLOW MODAL =========
+function openFlowModal(){
+  const steps=[
+    {num:'①',icon:'ti-speakerphone',label:'ประกาศประเมินบุคคล',bg:'var(--teal-bg)',color:'var(--teal-dark)',desc:'ประกาศรายชื่อบุคคลที่ได้รับการคัดเลือกเข้ารับการประเมินเพื่อแต่งตั้งให้ดำรงตำแหน่ง'},
+    {num:'②',icon:'ti-send',label:'ส่งผลงาน',bg:'var(--blue-bg)',color:'var(--blue-dark)',desc:'ผู้สมัครส่งเอกสารผลงานเพื่อรับการประเมิน'},
+    {num:'③',icon:'ti-search',label:'สสจ. ตรวจสอบ',bg:'var(--amber-bg)',color:'var(--amber-dark)',desc:'สำนักงานสาธารณสุขจังหวัดตรวจสอบความถูกต้องของเอกสาร'},
+    {num:'④',icon:'ti-building',label:'ส่งหน่วยประเมิน',bg:'var(--purple-bg)',color:'var(--purple-dark)',desc:'ส่งเอกสารไปยังคณะกรรมการหน่วยประเมินวิชาการ'},
+    {num:'⑤',icon:'ti-checkbox',label:'ผลการพิจารณา',bg:'var(--teal-bg)',color:'var(--teal-dark)',desc:'คณะกรรมการพิจารณาและมีผลการประเมิน'},
+    {num:'⑥',icon:'ti-bell',label:'แจ้งผลกลับ',bg:'var(--green-bg)',color:'var(--green-dark)',desc:'แจ้งผลกลับมายัง สสจ. และผู้สมัคร'},
+    {num:'⑦',icon:'ti-file-check',label:'ทำคำสั่ง',bg:'var(--surface2)',color:'var(--brown)',desc:'ดำเนินการออกคำสั่งแต่งตั้งตำแหน่ง'},
+  ];
+  const stepsHTML=steps.map(s=>`
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="width:44px;height:44px;border-radius:var(--radius-sm);background:${s.bg};border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <i class="ti ${s.icon}" style="font-size:20px;color:${s.color}"></i>
+      </div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text3)">${s.num}</span>
+          <span style="font-size:14px;font-weight:600;color:var(--text)">${s.label}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2)">${s.desc}</div>
+      </div>
+    </div>`).join('');
+
+  const branchHTML=`
+    <div style="margin-top:1rem;background:var(--amber-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.875rem 1rem">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:.75rem;font-size:12px;font-weight:600;color:var(--amber-dark)">
+        <i class="ti ti-refresh" style="font-size:16px"></i> กรณีปรับปรุงแก้ไข
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;font-weight:500;color:var(--amber-dark)">
+        <span style="padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);display:inline-flex;align-items:center;gap:4px"><i class="ti ti-pencil" style="font-size:13px"></i> แก้ไข &amp; ส่งรอบที่ 2</span>
+        <i class="ti ti-chevron-right" style="font-size:16px;color:var(--text3)"></i>
+        <span style="padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);display:inline-flex;align-items:center;gap:4px"><i class="ti ti-building" style="font-size:13px"></i> ③ ส่งหน่วยประเมิน</span>
+        <i class="ti ti-chevron-right" style="font-size:16px;color:var(--text3)"></i>
+        <span style="padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);display:inline-flex;align-items:center;gap:4px"><i class="ti ti-checkbox" style="font-size:13px"></i> ④ ผลการพิจารณา</span>
+        <i class="ti ti-chevron-right" style="font-size:16px;color:var(--text3)"></i>
+        <span style="padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);display:inline-flex;align-items:center;gap:4px"><i class="ti ti-file-check" style="font-size:13px"></i> ⑥ ทำคำสั่ง</span>
+      </div>
+      <div style="margin-top:.625rem;font-size:11px;color:var(--amber-dark)">
+        <i class="ti ti-info-circle" style="font-size:12px"></i>
+        ปรับปรุงแก้ไขไม่เป็นสาระสำคัญ: กำหนด <strong>2 เดือน</strong> · ปรับปรุงแก้ไขเป็นสาระสำคัญ: กำหนด <strong>6 เดือน</strong>
+      </div>
+    </div>`;
+
+  document.getElementById('flowModalBody').innerHTML=`<div>${stepsHTML}</div>${branchHTML}`;
+  document.getElementById('flowModalOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
 }
+function closeFlowModal(){document.getElementById('flowModalOverlay').classList.remove('open');document.body.style.overflow='';}
+function closeFlowModalOutside(e){if(e.target===document.getElementById('flowModalOverlay'))closeFlowModal();}
 
-// ========= BUILD DATA FROM CSV ROWS =========
-function buildDataFromCSV(rows){
-  return rows.filter(c=>c.length>=3&&c[1]&&c[1].trim()).map((c,i)=>{
-    const g=j=>(c[j]||'').trim();
-    const r2s=g(12),r2c=g(13),r2se=g(14),r2r=g(15),r2rd=g(16),r2o=g(17);
-    const hr2=r2s||r2c||r2se||r2r||r2rd||r2o;
-    return {id:i+1,name:g(1),pos:g(2),eligibleDate:cvtBE(g(3)),
-      r1:{submit:cvtBE(g(4)),check:g(5),sent:cvtBE(g(6)),result:g(7),resultDate:cvtBE(g(8)),deadline:cvtBE(g(9)),order:cvtBE(g(10))},
-      r2:hr2?{submit:cvtBE(r2s),check:r2c,sent:cvtBE(r2se),result:r2r,resultDate:cvtBE(r2rd),order:cvtBE(r2o)}:null,
-      note:g(11)};
-  });
+// ========= PERSON MODAL =========
+function openModal(pid){
+  const p=DATA.find(x=>x.id===pid);if(!p)return;
+  const ol=overallLabel(p);
+  document.getElementById('modalTitle').innerHTML=`<span class="av ${ol.av}" style="width:28px;height:28px;font-size:12px">${ini(p.name)}</span>${p.name}`;
+  document.getElementById('modalBody').innerHTML=buildModalBody(p);
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
 }
+function closeModal(){document.getElementById('modalOverlay').classList.remove('open');document.body.style.overflow='';}
+function closeModalOutside(e){if(e.target===document.getElementById('modalOverlay'))closeModal();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeFlowModal();}});
 
-// ========= LOAD FROM GOOGLE SHEETS =========
-let DATA=[];
-async function loadData(){
-  const ov=document.getElementById('ldOv');
-  const err=document.getElementById('ldErr');
-  const btn=document.getElementById('ldBtn');
-  const dbgEl=document.getElementById('ldDbg');
-  if(ov)ov.style.display='flex';
-  if(err)err.style.display='none';
-  if(btn)btn.style.display='none';
-  if(dbgEl)dbgEl.innerHTML='';
+function eligBoxHTML(p){
+  if(!p.eligibleDate) return '';
+  const dEO=getDaysFromEligToOrder(p);
+  const sub=dEO!==null?`ใช้เวลา ${dEO} วัน จนถึงวันที่ทำคำสั่ง`:'ยังไม่มีคำสั่ง';
+  return `<div class="elig-box"><div class="elig-icon"><i class="ti ti-calendar-event"></i></div>
+    <div><div class="elig-label"><i class="ti ti-star" style="font-size:11px"></i> วันที่ประกาศประเมินบุคคล</div>
+    <div class="elig-date">${fmt(p.eligibleDate)}</div><div class="elig-sub">${sub}</div></div></div>`;
+}
+function roundSectionHTML(r,rnum,p){
+  if(!r) return '';
+  const isPend=rnum===2&&p&&isPendingR2(p);
+  const lbl=rnum===1?getR1Lbl(r):getR2Lbl(p);
+  const bc=badgeCls(lbl);
+  const dLine=r.deadline?`<div class="dr"><span class="dl"><i class="ti ti-calendar-due"></i> กำหนดส่งแก้ไข</span><span class="dv" style="color:var(--amber)">${fmt(r.deadline)}</span></div>`:'';
 
-  try{
-    dbg('เริ่มโหลด CSV จาก Google Sheets...');
-    const url='https://docs.google.com/spreadsheets/d/1hbXCaO8spDuEJ8Yqji4YcWUmuKkYEHX4QmWgewGZ3zg/export?format=csv&gid=0';
-    const c=new AbortController();
-    const t=setTimeout(()=>c.abort(),15000);
-    const r=await fetch(url,{signal:c.signal});
-    clearTimeout(t);
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const text=await r.text();
-    if(text.trim().startsWith('<')) throw new Error('Sheet ไม่ public — กด Share → Anyone with the link → Viewer');
-    dbg('CSV โหลดสำเร็จ: '+text.split('\n').length+' แถว');
-    const allRows=parseCSV(text);
-    const dataRows=allRows.slice(2);
-    DATA=buildDataFromCSV(dataRows).sort((a,b)=>{
-      const pa=a.r1&&a.r1.submit?a.r1.submit:''; const pb=b.r1&&b.r1.submit?b.r1.submit:'';
-      const da=parseDate(pa),db=parseDate(pb);
-      if(!da&&!db)return 0; if(!da)return 1; if(!db)return -1;
-      return da-db;
-    });
-    dbg('DATA: '+DATA.length+' รายการ ✓');
+  // day boxes
+  const elig=parseDate(p.eligibleDate);
+  const se=parseDate(r.sent);
+  const rd=parseDate(r.resultDate);
+  const od=parseDate(r.order);
 
-    const pos=[...new Set(DATA.map(p=>p.pos).filter(Boolean))].sort();
-    const sel=document.getElementById('posF');
-    if(sel){
-      sel.innerHTML='<option value="">ทุกตำแหน่ง/ระดับ</option>'+pos.map(p=>'<option value="'+p+'">'+p+'</option>').join('');
-    }
+  // กล่อง 1: ประกาศประเมิน → ส่งหน่วยประเมิน (แทน ส่ง → หน่วยประเมิน)
+  const eligToSent=(elig&&se)?diffDays(elig,se):null;
+  // กล่อง 2: จำนวนวันที่หน่วยประเมินอ่านผลงาน (ส่งหน่วย → ผล)
+  const sentToResult=(se&&rd)?diffDays(se,rd):null;
+  // กล่อง 3: วัน · ผล → คำสั่ง
+  const resultToOrder=(rd&&od)?diffDays(rd,od):null;
+  // กล่อง 4 teal: วันที่แจ้งผลประเมิน ถึง วันที่สสจ.ทำคำสั่ง (ประกาศ → คำสั่ง)
+  const eligToOrd=(elig&&od)?diffDays(elig,od):null;
 
-    const now=new Date();
-    const el=document.getElementById('updateTime');
-    if(el) el.textContent='อัปเดตล่าสุด: '+now.getDate()+'/'+(now.getMonth()+1)+'/'+(now.getFullYear()+543)+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+' น. · '+DATA.length+' รายการ';
+  const box1=eligToSent!==null?`<div class="day-box"><div class="day-num">${eligToSent}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">วัน · ประกาศประเมิน<br>→ ส่งหน่วยประเมิน</div></div>`:'';
+  const box2=sentToResult!==null?`<div class="day-box"><div class="day-num">${sentToResult}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">วัน · จำนวนวันที่หน่วยประเมิน<br>อ่านผลงาน</div></div>`:'';
+  const box3=resultToOrder!==null?`<div class="day-box"><div class="day-num">${resultToOrder}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">วัน · ผล → คำสั่ง</div></div>`:'';
+  const box4=eligToOrd!==null?`<div class="day-box teal-box"><div class="day-num">${eligToOrd}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">วัน · วันที่แจ้งผลประเมิน<br>ถึง วันที่สสจ.ทำคำสั่ง</div></div>`:'';
 
-    if(ov) ov.style.display='none';
-    render();
-  } catch(e){
-    console.error(e);
-    if(err){ err.textContent='โหลดไม่สำเร็จ: '+e.message; err.style.display='block'; }
-    if(btn) btn.style.display='block';
-    if(document.getElementById('ldTxt')) document.getElementById('ldTxt').textContent='โหลดข้อมูลไม่สำเร็จ';
+  if(isPend){
+    return `<div class="det-sec"><div class="det-sec-head"><i class="ti ti-refresh"></i> รอบที่ ${rnum} <span class="badge b-amber" style="font-size:11px">${lbl}</span></div>
+      <div class="pending-note"><i class="ti ti-clock"></i> อยู่ระหว่างดำเนินการแก้ไข · กำหนดส่ง: <span class="blink-date">${fmt(p.r1.deadline)}</span></div></div>`;
   }
+  return `<div class="det-sec"><div class="det-sec-head"><i class="ti ti-${rnum===1?'file-text':'refresh'}"></i> รอบที่ ${rnum} <span class="badge ${bc}" style="font-size:11px">${lbl}</span></div>
+    ${r.submit?`<div class="dr"><span class="dl" style="font-size:13px"><i class="ti ti-send"></i> วันที่ส่งผลงาน</span><span class="dv" style="font-size:13px">${fmt(r.submit)}</span></div>`:''}
+    ${r.check?`<div class="dr"><span class="dl" style="font-size:13px"><i class="ti ti-search"></i> สสจ. ตรวจสอบ</span><span class="dv" style="font-size:13px">${r.check}</span></div>`:''}
+    ${r.sent?`<div class="dr"><span class="dl" style="font-size:13px"><i class="ti ti-building"></i> วันที่ส่งหน่วยประเมิน<br><span style="font-size:11px;color:var(--text3);font-weight:400;padding-left:20px">(นับจากวันที่สสจ.ออกหนังสือ)</span></span><span class="dv" style="font-size:13px">${fmt(r.sent)}</span></div>`:''}
+    ${r.result?`<div class="dr"><span class="dl" style="font-size:13px"><i class="ti ti-checkbox"></i> ผลการพิจารณา</span><span class="dv" style="font-size:13px">${r.result}</span></div>`:''}
+    ${r.resultDate?`<div class="dr"><span class="dl" style="font-size:13px"><i class="ti ti-bell"></i> วันที่แจ้งผลกลับ</span><span class="dv" style="font-size:13px">${fmt(r.resultDate)}</span></div>`:''}
+    ${dLine}
+    ${r.order?`<div class="dr"><span class="dl" style="font-size:13px"><i class="ti ti-file-check"></i> ทำคำสั่ง</span><span class="dv" style="font-size:13px;color:var(--teal)">${fmt(r.order)}</span></div>`:''}
+    ${(box1||box2||box3||box4)?`<div class="day-boxes">${box1}${box2}${box3}${box4}</div>`:''}
+  </div>`;
+}
+function buildModalBody(p){
+  return eligBoxHTML(p)+`<div style="margin-bottom:8px"><span class="badge b-brown" style="font-size:11px">${p.pos}</span></div>`+
+    roundSectionHTML(p.r1,1,p)+(p.r2?roundSectionHTML(p.r2,2,p):'');
+}
+
+// ========= STATE =========
+let chip1='all',chip2='all',yearFilter1='all',yearFilter2='all',activeKpi=null;
+let secOpen1=false,secOpen2=false;
+function toggleKpi(key){
+  document.querySelectorAll('.kpi-expand').forEach(e=>e.classList.remove('open'));
+  activeKpi=activeKpi===key?null:key;
+  if(activeKpi) document.getElementById('kx-'+activeKpi).classList.add('open');
+}
+function toggleSection(round,event){
+  // prevent chip clicks from bubbling to toggle
+  if(event&&event.target.closest('.chip-bar')) return;
+  if(round===1){
+    secOpen1=!secOpen1;
+    document.getElementById('secbody1').classList.toggle('open',secOpen1);
+    document.getElementById('secchev1').classList.toggle('open',secOpen1);
+  } else {
+    secOpen2=!secOpen2;
+    document.getElementById('secbody2').classList.toggle('open',secOpen2);
+    document.getElementById('secchev2').classList.toggle('open',secOpen2);
+  }
+}
+function setChip(el,round){
+  const s=el.dataset.s;
+  if(round==='1')chip1=s;else chip2=s;
+  document.querySelectorAll(`[data-r="${round}"]`).forEach(c=>c.classList.remove('act'));
+  el.classList.add('act');renderLists();
+}
+function setYear(yr,round){
+  if(round==='1')yearFilter1=yr;else yearFilter2=yr;renderLists();
+}
+function filtered(){const pos=document.getElementById('posF').value;return DATA.filter(p=>!pos||p.pos===pos);}
+function matchC1(p,c){const s=getStatus(p);if(c==='all')return true;return c===s;}
+function matchC2(p,c){
+  if(!p.r2)return false;if(c==='all')return true;
+  if(c==='pass')return isPassR2(p);if(c==='fail')return isFailR2(p);
+  if(c==='pending')return isPendingR2(p);
+  if(c==='inprog')return !p.r2.order&&!isPendingR2(p)&&!isPassR2(p)&&!isFailR2(p);
+  return true;
+}
+function getYears(data){const s=new Set();data.forEach(p=>{const y=getEligYear(p);if(y)s.add(y);});return[...s].sort();}
+function yearPillsHTML(yrs,active,round){
+  return `<div class="ypill ${active==='all'?'act':''}" onclick="setYear('all','${round}')">ทั้งหมด</div>`+
+    yrs.map(y=>`<div class="ypill ${active==y?'act':''}" onclick="setYear(${y},'${round}')">${y}</div>`).join('');
+}
+function tableRow(p){
+  const ol=overallLabel(p);
+  const orderDate=p.r2&&p.r2.order?p.r2.order:p.r1&&p.r1.order?p.r1.order:'';
+  const dEO=getDaysFromEligToOrder(p);
+  return `<tr onclick="openModal(${p.id})" title="คลิกดูรายละเอียด">
+    <td><div style="display:flex;align-items:center;gap:10px">
+      <div class="av ${ol.av}" style="width:34px;height:34px;font-size:12px;flex-shrink:0">${ini(p.name)}</div>
+      <div><div class="tname">${p.name}</div><div class="tpos">${p.pos}</div></div>
+    </div></td>
+    <td class="td-center"><span class="badge ${ol.b}" style="font-size:11px">${ol.t}</span></td>
+    <td><div class="tdate ${p.eligibleDate?'':'na'}" style="display:flex;align-items:center;gap:4px"><i class="ti ti-star" style="font-size:11px;color:var(--teal)"></i>${p.eligibleDate||'—'}</div></td>
+    <td><div class="tdate ${orderDate?'':'na'}" style="display:flex;align-items:center;gap:4px"><i class="ti ti-file-check" style="font-size:11px;color:var(--text3)"></i>${orderDate||'—'}</div></td>
+    <td class="telig ${dEO!==null?'':'na'}">${dEO!==null?dEO+' วัน':'—'}</td>
+    <td class="td-center"><div style="display:flex;align-items:center;gap:5px;justify-content:center"><div class="dot ${ol.d}"></div><i class="ti ti-chevron-right" style="font-size:13px;color:var(--text3)"></i></div></td>
+  </tr>`;
+}
+
+// ========= KPI =========
+function renderKPI(data){
+  const total=data.length,pR1=data.filter(isPassR1),pR2=data.filter(isPassR2),pAll=data.filter(isPass);
+  const fAll=data.filter(isFail),fixAll=data.filter(isFixType);
+  const fix2=fixAll.filter(p=>p.r1.result.includes('ไม่เป็นสาระสำคัญ'));
+  const fix6=fixAll.filter(p=>p.r1.result.includes('เป็นสาระสำคัญ')&&!p.r1.result.includes('ไม่เป็น'));
+  document.getElementById('kpiRow').innerHTML=`
+    <div class="kpi-card c-gray"><div class="kpi-icon"><i class="ti ti-users" style="color:var(--text3)"></i></div><div class="kpi-label">ทั้งหมด</div><div class="kpi-num">${total}</div><div class="kpi-sub"><i class="ti ti-user"></i> ราย</div></div>
+    <div class="kpi-card c-green clickable" onclick="toggleKpi('pass')"><div class="kpi-icon"><i class="ti ti-award"></i></div><div class="kpi-label">ผ่านการประเมิน</div><div class="kpi-num">${pAll.length}</div><div class="kpi-sub"><i class="ti ti-chevron-down"></i> รอบ 1: ${pR1.length} · รอบ 2: ${pR2.length}</div></div>
+    <div class="kpi-card c-red"><div class="kpi-icon"><i class="ti ti-circle-x"></i></div><div class="kpi-label">ไม่ผ่านการประเมิน</div><div class="kpi-num">${fAll.length}</div><div class="kpi-sub">รอบ 1: ${data.filter(isFailR1).length} · รอบ 2: ${data.filter(isFailR2).length}</div></div>
+    <div class="kpi-card c-amber clickable" onclick="toggleKpi('fix')"><div class="kpi-icon"><i class="ti ti-pencil"></i></div><div class="kpi-label">รอแก้ไข</div><div class="kpi-num">${fixAll.length}</div><div class="kpi-sub"><i class="ti ti-chevron-down"></i> คลิกดูรายละเอียด</div></div>`;
+  document.getElementById('kx-pass-inner').innerHTML=`
+    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-circle-check"></i> ผ่านรอบที่ 1</div><div class="sub-card-num">${pR1.length} <span style="font-size:14px;color:var(--text3)">ราย</span></div></div>
+    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-refresh"></i> ผ่านรอบที่ 2</div><div class="sub-card-num teal">${pR2.length} <span style="font-size:14px;color:var(--text3)">ราย</span></div></div>`;
+  document.getElementById('kx-fix-inner').innerHTML=`
+    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-clock-2"></i> กำหนด 2 เดือน</div><div class="sub-card-num amber">${fix2.length} <span style="font-size:14px;color:var(--text3)">ราย</span></div></div>
+    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-clock-2"></i> กำหนด 6 เดือน</div><div class="sub-card-num amber">${fix6.length} <span style="font-size:14px;color:var(--text3)">ราย</span></div></div>`;
+}
+
+// ========= LISTS =========
+function renderLists(){
+  const data=filtered(),yrs=getYears(data);
+  let r1f=data.filter(p=>matchC1(p,chip1));
+  if(yearFilter1!=='all') r1f=r1f.filter(p=>getEligYear(p)==yearFilter1);
+  let r2f=data.filter(p=>p.r2).filter(p=>matchC2(p,chip2));
+  if(yearFilter2!=='all') r2f=r2f.filter(p=>getEligYear(p)==yearFilter2);
+  const thead=`<table class="list-table"><thead><tr>
+    <th><i class="ti ti-user" style="font-size:11px"></i> ชื่อ — ตำแหน่ง</th>
+    <th><i class="ti ti-flag" style="font-size:11px"></i> สถานะ</th>
+    <th><i class="ti ti-star" style="font-size:11px"></i> ประกาศประเมินบุคคล</th>
+    <th><i class="ti ti-file-check" style="font-size:11px"></i> วันที่ทำคำสั่ง</th>
+    <th><i class="ti ti-clock" style="font-size:11px"></i> วันที่ใช้</th>
+    <th></th>
+  </tr></thead><tbody>`;
+
+  document.getElementById('mainList').innerHTML=`
+    <div class="section-card">
+      <div class="section-head" onclick="toggleSection(1,event)" style="padding:1rem 1.25rem .875rem;border-bottom:${secOpen1?'1px solid var(--border)':'none'}">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div class="section-title"><i class="ti ti-file-text" style="color:var(--blue)"></i> รอบที่ 1 <span class="badge b-blue">${r1f.length} ราย</span></div>
+            <div class="chip-bar" onclick="event.stopPropagation()">
+              <div class="chip ${chip1==='all'?'act':''}" data-r="1" data-s="all" onclick="setChip(this,'1')">ทั้งหมด</div>
+              <div class="chip ${chip1==='pass'?'act':''}" data-r="1" data-s="pass" onclick="setChip(this,'1')"><i class="ti ti-check"></i> ผ่าน</div>
+              <div class="chip ${chip1==='fail'?'act':''}" data-r="1" data-s="fail" onclick="setChip(this,'1')"><i class="ti ti-x"></i> ไม่ผ่าน</div>
+              <div class="chip ${chip1==='fix'?'act':''}" data-r="1" data-s="fix" onclick="setChip(this,'1')"><i class="ti ti-pencil"></i> รอแก้ไข</div>
+              <div class="chip ${chip1==='inprog'?'act':''}" data-r="1" data-s="inprog" onclick="setChip(this,'1')"><i class="ti ti-loader"></i> ระหว่างดำเนิน</div>
+            </div>
+          </div>
+          <i class="ti ti-chevron-down sec-chevron ${secOpen1?'open':''}" id="secchev1"></i>
+        </div>
+      </div>
+      <div class="section-body ${secOpen1?'open':''}" id="secbody1" style="padding:.75rem 1.25rem 1rem">
+        <div class="list-filters">
+          <span class="list-filter-label"><i class="ti ti-calendar"></i> ปีที่ประกาศประเมินบุคคล</span>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">${yearPillsHTML(yrs,yearFilter1,'1')}</div>
+        </div>
+        ${r1f.length?thead+r1f.map(tableRow).join('')+'</tbody></table>':'<div class="nodata"><i class="ti ti-mood-empty"></i> ไม่มีรายการ</div>'}
+      </div>
+    </div>
+    <div class="section-card">
+      <div class="section-head" onclick="toggleSection(2,event)" style="padding:1rem 1.25rem .875rem;border-bottom:${secOpen2?'1px solid var(--border)':'none'}">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div class="section-title"><i class="ti ti-refresh" style="color:var(--purple)"></i> รอบที่ 2 <span class="badge b-purple">${r2f.length} ราย</span></div>
+            <div class="chip-bar" onclick="event.stopPropagation()">
+              <div class="chip ${chip2==='all'?'act':''}" data-r="2" data-s="all" onclick="setChip(this,'2')">ทั้งหมด</div>
+              <div class="chip ${chip2==='pass'?'act':''}" data-r="2" data-s="pass" onclick="setChip(this,'2')"><i class="ti ti-check"></i> ผ่าน</div>
+              <div class="chip ${chip2==='fail'?'act':''}" data-r="2" data-s="fail" onclick="setChip(this,'2')"><i class="ti ti-x"></i> ไม่ผ่าน</div>
+              <div class="chip ${chip2==='pending'?'act':''}" data-r="2" data-s="pending" onclick="setChip(this,'2')"><i class="ti ti-pencil"></i> กำลังแก้ไข</div>
+              <div class="chip ${chip2==='inprog'?'act':''}" data-r="2" data-s="inprog" onclick="setChip(this,'2')"><i class="ti ti-loader"></i> ระหว่างดำเนิน</div>
+            </div>
+          </div>
+          <i class="ti ti-chevron-down sec-chevron ${secOpen2?'open':''}" id="secchev2"></i>
+        </div>
+      </div>
+      <div class="section-body ${secOpen2?'open':''}" id="secbody2" style="padding:.75rem 1.25rem 1rem">
+        <div class="list-filters">
+          <span class="list-filter-label"><i class="ti ti-calendar"></i> ปีที่ประกาศประเมินบุคคล</span>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">${yearPillsHTML(yrs,yearFilter2,'2')}</div>
+        </div>
+        ${r2f.length?thead+r2f.map(tableRow).join('')+'</tbody></table>':'<div class="nodata"><i class="ti ti-mood-empty"></i> ไม่มีรายการในรอบที่ 2</div>'}
+      </div>
+    </div>`;
 }
 
 function render(){yearFilter1='all';yearFilter2='all';renderKPI(filtered());renderLists();}
-const _ut=document.getElementById('updateTime');
-if(_ut) _ut.textContent='กำลังโหลด...';
+const now=new Date();
+document.getElementById('updateTime').textContent=`อัปเดตล่าสุด: ${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()+543}`;
 loadData();
 
 </script>
