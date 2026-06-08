@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Sheet Test</title>
+<style>body{font-family:sans-serif;padding:20px;background:#f5f5f5}
+.box{background:#fff;border-radius:8px;padding:16px;margin:8px 0;border-left:4px solid #ccc}
+.ok{border-color:#4CAF50}.err{border-color:#f44336}.wait{border-color:#2196F3}
+pre{font-size:12px;white-space:pre-wrap;word-break:break-all;margin-top:8px}
+</style></head>
+<body>
+<h2>🔬 Google Sheet Connection Test</h2>
+<p>Sheet ID: <code>1hbXCaO8spDuEJ8Yqji4YcWUmuKkYEHX4QmWgewGZ3zg</code></p>
+<div id="log"></div>
+<script>
+const SHEET_ID = '1hbXCaO8spDuEJ8Yqji4YcWUmuKkYEHX4QmWgewGZ3zg';
+const logEl = document.getElementById('log');
+
+function add(id, cls, title, detail) {
+  let el = document.getElementById(id);
+  if (!el) {
+    el = document.createElement('div');
+    el.id = id;
+    el.className = 'box ' + cls;
+    logEl.appendChild(el);
+  } else {
+    el.className = 'box ' + cls;
+  }
+  el.innerHTML = '<b>' + title + '</b>' + (detail ? '<pre>' + detail + '</pre>' : '');
+}
+
+async function runTests() {
+  const gvizUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json';
+
+  // Test 1: allorigins
+  add('t1', 'wait', '⏳ Test 1: allorigins.win proxy...');
+  try {
+    const url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(gvizUrl);
+    const r = await fetch(url);
+    const text = await r.text();
+    const preview = text.substring(0, 300);
+    if (text.trim().startsWith('<')) {
+      add('t1', 'err', '❌ allorigins: Sheet ไม่ public — ได้ HTML แทน', preview);
+    } else if (text.includes('setResponse')) {
+      add('t1', 'ok', '✅ allorigins: สำเร็จ! Sheet เป็น Public', preview);
+    } else {
+      add('t1', 'err', '⚠️ allorigins: ได้ข้อมูลแปลก', preview);
+    }
+  } catch(e) {
+    add('t1', 'err', '❌ allorigins error: ' + e.message);
+  }
+
+  // Test 2: corsproxy
+  add('t2', 'wait', '⏳ Test 2: corsproxy.io proxy...');
+  try {
+    const url = 'https://corsproxy.io/?' + encodeURIComponent(gvizUrl);
+    const r = await fetch(url);
+    const text = await r.text();
+    const preview = text.substring(0, 300);
+    if (text.trim().startsWith('<')) {
+      add('t2', 'err', '❌ corsproxy: Sheet ไม่ public — ได้ HTML แทน', preview);
+    } else if (text.includes('setResponse')) {
+      add('t2', 'ok', '✅ corsproxy: สำเร็จ! Sheet เป็น Public', preview);
+    } else {
+      add('t2', 'err', '⚠️ corsproxy: ได้ข้อมูลแปลก', preview);
+    }
+  } catch(e) {
+    add('t2', 'err', '❌ corsproxy error: ' + e.message);
+  }
+
+  // Test 3: Direct gviz CSV
+  add('t3', 'wait', '⏳ Test 3: Direct fetch CSV (จะ CORS ถ้า sheet private)...');
+  try {
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/export?format=csv&gid=0';
+    const r = await fetch(csvUrl, {mode:'cors'});
+    const text = await r.text();
+    add('t3', 'ok', '✅ Direct CSV สำเร็จ! (Sheet public)', text.substring(0, 200));
+  } catch(e) {
+    add('t3', 'err', '❌ Direct CSV: ' + e.message + ' (คาดว่า CORS blocked หรือ sheet ไม่ public)');
+  }
+
+  add('done', 'ok', '🏁 ทดสอบเสร็จแล้ว — ดูผลด้านบน');
+}
+
+runTests();
+</script>
+</body></html>
