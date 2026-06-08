@@ -315,18 +315,30 @@ select:focus{outline:none;border-color:var(--brown)}
 
 <script>
 // ===== FILE ID =====
-const SHEET_FILE_ID = '1hbXCaO8spDuEJ8Yqji4YcWUmuKkYEHX4QmWgewGZ3zg';
+const SHEET_ID = '1hbXCaO8spDuEJ8Yqji4YcWUmuKkYEHX4QmWgewGZ3zg';
 
 let DATA = [];
 
-// ===== PARSE MARKDOWN TABLE FROM MCP =====
-function parseMarkdownTable(md) {
-  const lines = md.trim().split('\n').filter(l => l.trim());
-  if (lines.length < 3) return [];
-  function parseCells(line) {
-    return line.split('|').slice(1, -1).map(c => c.trim());
+// ===== CSV PARSER (handles quoted fields) =====
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], n = text[i+1];
+    if (inQ) {
+      if (c === '"' && n === '"') { field += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else field += c;
+    } else {
+      if (c === '"') { inQ = true; }
+      else if (c === ',') { row.push(field.trim()); field = ''; }
+      else if (c === '\r' && n === '\n') { row.push(field.trim()); rows.push(row); row = []; field = ''; i++; }
+      else if (c === '\n' || c === '\r') { row.push(field.trim()); rows.push(row); row = []; field = ''; }
+      else field += c;
+    }
   }
-  return lines.slice(2).map(line => parseCells(line));
+  if (field || row.length) { row.push(field.trim()); rows.push(row); }
+  return rows;
 }
 
 // Convert Gregorian 2-digit year → Buddhist 2-digit year (AD 26 → BE 69)
@@ -379,18 +391,33 @@ function buildData(rows) {
     });
 }
 
-// ===== LOAD DATA FROM MCP =====
+// ===== LOAD DATA FROM GOOGLE SHEETS CSV =====
 async function loadData() {
   document.getElementById('loadingOverlay').classList.remove('hidden');
   try {
-    const r = await window.cowork.callMcpTool(
-      'mcp__2ab58198-5cf1-41c3-ad51-21c43099d588__read_file_content',
-      { fileId: SHEET_FILE_ID }
-    );
-    if (r.isError) throw new Error('MCP error');
-    const payload = r.structuredContent ?? JSON.parse(r.content[0].text);
-    const md = payload.fileContent || '';
-    const rows = parseMarkdownTable(md);
+    // Try Cowork MCP first (when running inside Cowork app)
+    let rows;
+    if (window.cowork && window.cowork.callMcpTool) {
+      const r = await window.cowork.callMcpTool(
+        'mcp__2ab58198-5cf1-41c3-ad51-21c43099d588__read_file_content',
+        { fileId: SHEET_ID }
+      );
+      if (r.isError) throw new Error('MCP error');
+      const payload = r.structuredContent ?? JSON.parse(r.content[0].text);
+      const md = payload.fileContent || '';
+      // Parse markdown table (MCP returns markdown)
+      const lines = md.trim().split('\n').filter(l => l.trim());
+      rows = lines.slice(2).map(line => line.split('|').slice(1,-1).map(c=>c.trim()));
+    } else {
+      // GitHub Pages / browser: fetch CSV directly from Google Sheets
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
+      const resp = await fetch(csvUrl);
+      if (!resp.ok) throw new Error('ไม่สามารถโหลด Google Sheet ได้ (HTTP ' + resp.status + ') — กรุณาตรวจสอบว่า Sheet ตั้งค่า "Anyone with the link" → Viewer แล้ว');
+      const text = await resp.text();
+      const allRows = parseCSV(text);
+      rows = allRows.slice(3); // skip 3 header rows
+    }
+
     DATA = buildData(rows).sort((a, b) => {
       const da = parseDate(a.r1 && a.r1.submit ? a.r1.submit : '');
       const db = parseDate(b.r1 && b.r1.submit ? b.r1.submit : '');
@@ -739,28 +766,4 @@ function renderLists(){
             <div class="chip-bar" onclick="event.stopPropagation()">
               <div class="chip ${chip2==='all'?'act':''}" data-r="2" data-s="all" onclick="setChip(this,'2')">ทั้งหมด</div>
               <div class="chip ${chip2==='pass'?'act':''}" data-r="2" data-s="pass" onclick="setChip(this,'2')"><i class="ti ti-check"></i> ผ่าน</div>
-              <div class="chip ${chip2==='fail'?'act':''}" data-r="2" data-s="fail" onclick="setChip(this,'2')"><i class="ti ti-x"></i> ไม่ผ่าน</div>
-              <div class="chip ${chip2==='pending'?'act':''}" data-r="2" data-s="pending" onclick="setChip(this,'2')"><i class="ti ti-pencil"></i> กำลังแก้ไข</div>
-              <div class="chip ${chip2==='inprog'?'act':''}" data-r="2" data-s="inprog" onclick="setChip(this,'2')"><i class="ti ti-loader"></i> ระหว่างดำเนิน</div>
-            </div>
-          </div>
-          <i class="ti ti-chevron-down sec-chevron ${secOpen2?'open':''}" id="secchev2"></i>
-        </div>
-      </div>
-      <div class="section-body ${secOpen2?'open':''}" id="secbody2">
-        <div class="list-filters">
-          <span class="list-filter-label"><i class="ti ti-calendar"></i> ปีที่ประกาศประเมินบุคคล</span>
-          <div style="display:flex;gap:5px;flex-wrap:wrap">${yearPillsHTML(yrs,yearFilter2,'2')}</div>
-        </div>
-        ${r2f.length?thead+r2f.map(tableRow).join('')+'</tbody></table>':'<div class="nodata"><i class="ti ti-mood-empty"></i> ไม่มีรายการในรอบที่ 2</div>'}
-      </div>
-    </div>`;
-}
-
-function render(){yearFilter1='all';yearFilter2='all';renderKPI(filtered());renderLists();}
-
-// ===== INIT =====
-loadData();
-</script>
-</body>
-</html>
+              <div class="chip ${chip2
