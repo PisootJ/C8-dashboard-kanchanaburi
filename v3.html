@@ -799,4 +799,57 @@ function renderLists(){
       <div class="section-head" onclick="toggleSection(1,event)">
         <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <div class="section-title"><i class="ti ti-file-text" style="col
+            <div class="section-title"><i class="ti ti-file-text" style="color:var(--blue)"></i> รอบที่ 1 <span class="badge b-blue">${r1f.length} ราย</span></div>
+            <div class="chip-bar" onclick="event.stopPropagation()">
+              <div class="chip ${chip1==='all'?'act':''}" data-r="1" data-s="all" onclick="setChip(this,'1')">ทั้งหมด</div>
+              <div class="chip ${chip1==='pass'?'act':''}" data-r="1" data-s="pass" onclick="setChip(this,'1')"><i class="ti ti-check"></i> ผ่าน</div>
+              <div class="chip ${chip1==='fail'?'act':''}" data-r="1" data-s="fail" onclick="setChip(this,'1')"><i class="ti ti-x"></i> ไม่ผ่าน</div>
+              <div class="chip ${chip1==='fix'?'act':''}" data-r="1" data-s="fix" onclick="setChip(this,'1')"><i class="ti ti-pencil"></i> รอแก้ไข</div>
+              <div class="chip ${chip1==='inprog'?'act':''}" data-r="1" data-s="inprog" onclick="setChip(this,'1')"><i class="ti ti-loader"></i> ระหว่างดำเนิน</div>
+            </div>
+          </div>
+          <i class="ti ti-chevron-down sec-chevron ${secOpen1?'open':''}" id="secchev1"></i>
+        </div>
+      </div>
+      <div class="section-body ${secOpen1?'open':''}" id="secbody1">
+        <div class="list-filters">
+          <span class="list-filter-label"><i class="ti ti-calendar"></i> ปีที่ประกาศประเมินบุคคล</span>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">${yearPillsHTML(yrs,yearFilter1,'1')}</div>
+        </div>
+        ${r1f.length?thead+r1f.map(tableRow).join('')+'</tbody></table>':'<div class="nodata"><i class="ti ti-mood-empty"></i> ไม่มีรายการ</div>'}
+      </div>
+    </div>
+    <div class="section-card">
+      <div class="section-head" onclick="toggleSection(2,event)">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div class="section-title"><i class="ti ti-refresh" style="color:var(--purple)"></i> รอบที่ 2 <span class="badge b-purple">${r2f.length} ราย</span></div>
+            <div class="chip-bar" onclick="event.stopPropagation()">
+              <div class="chip ${chip2==='all'?'act':''}" data-r="2" data-s="all" onclick="setChip(this,'2')">ทั้งหมด</div>
+              <div class="chip ${chip2==='pass'?'act':''}" data-r="2" data-s="pass" onclick="setChip(this,'2')"><i class="ti ti-check"></i> ผ่าน</div>
+              <div class="chip ${chip2==='fail'?'act':''}" data-r="2" data-s="fail" onclick="setChip(this,'2')"><i class="ti ti-x"></i> ไม่ผ่าน</div>
+              <div class="chip ${chip2==='pending'?'act':''}" data-r="2" data-s="pending" onclick="setChip(this,'2')"><i class="ti ti-pencil"></i> กำลังแก้ไข</div>
+              <div class="chip ${chip2==='inprog'?'act':''}" data-r="2" data-s="inprog" onclick="setChip(this,'2')"><i class="ti ti-loader"></i> ระหว่างดำเนิน</div>
+            </div>
+          </div>
+          <i class="ti ti-chevron-down sec-chevron ${secOpen2?'open':''}" id="secchev2"></i>
+        </div>
+      </div>
+      <div class="section-body ${secOpen2?'open':''}" id="secbody2">
+        <div class="list-filters">
+          <span class="list-filter-label"><i class="ti ti-calendar"></i> ปีที่ประกาศประเมินบุคคล</span>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">${yearPillsHTML(yrs,yearFilter2,'2')}</div>
+        </div>
+        ${r2f.length?thead+r2f.map(tableRow).join('')+'</tbody></table>':'<div class="nodata"><i class="ti ti-mood-empty"></i> ไม่มีรายการในรอบที่ 2</div>'}
+      </div>
+    </div>`;
+}
+
+function render(){yearFilter1='all';yearFilter2='all';renderKPI(filtered());renderLists();}
+
+// ===== INIT =====
+loadData();
+</script>
+</body>
+</html>
+o
