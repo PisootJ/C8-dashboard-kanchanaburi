@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C8 Dashboard — ติดตาม Workflow การประเมินตำแหน่ง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#F5F0E8;
+  --surface:#FDFAF5;
+  --surface2:#EDE8DE;
+  --surface3:#E4DCCE;
+  --border:#D9D0C0;
+  --border2:#C8BCAA;
+  --text:#2C2416;
+  --text2:#7A6E5F;
+  --text3:#A89F92;
+  --blue-bg:#EAF0F8;--blue:#4270A0;--blue-dark:#2A4E78;--blue-mid:#6A94C4;
+  --green-bg:#E8F2E4;--green:#4A7A32;--green-dark:#2E5A1E;
+  --amber-bg:#F5EDD8;--amber:#8A6020;--amber-dark:#5E3E0A;--amber-mid:#C4943A;
+  --red-bg:#F5E8E8;--red:#9A3030;--red-dark:#6A1E1E;
+  --purple-bg:#EDE8F5;--purple:#6254A8;--purple-dark:#40347E;
+  --teal-bg:#E4F2EE;--teal:#2E7A62;--teal-dark:#1A5444;
+  --brown:#7A6048;--brown-bg:#F0E8D8;
+  --radius:10px;--radius-sm:7px;--radius-lg:16px;
+  --shadow:0 1px 4px rgba(44,36,22,.07);
+  --shadow-md:0 6px 20px rgba(44,36,22,.12),0 2px 6px rgba(44,36,22,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px;-webkit-font-smoothing:antialiased}
+body{font-family:'IBM Plex Sans Thai',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* LOADING */
+.loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.loading-overlay.hidden{display:none}
+.spinner{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--brown);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:14px;color:var(--text2)}
+.error-box{background:var(--red-bg);border:1px solid var(--red);border-radius:var(--radius);padding:1rem 1.25rem;color:var(--red-dark);font-size:13px;max-width:400px;text-align:center;display:none}
+.error-box.show{display:block}
+
+/* HEADER */
+.page-header{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;gap:12px;flex-wrap:wrap;
+  box-shadow:0 1px 0 var(--border),0 2px 8px rgba(44,36,22,.04);
+}
+.logo{display:flex;align-items:center;gap:.875rem}
+.logo-badge{
+  width:38px;height:38px;border-radius:var(--radius-sm);
+  background:linear-gradient(135deg,var(--brown) 0%,#5A4030 100%);
+  display:flex;align-items:center;justify-content:center;
+  color:#F5EDD8;font-weight:600;font-size:14px;letter-spacing:-.3px;
+  box-shadow:0 2px 6px rgba(90,64,48,.3);
+}
+.logo-text h1{font-size:16px;font-weight:600;color:var(--text);letter-spacing:-.3px}
+.logo-text p{font-size:11px;color:var(--text3);margin-top:2px}
+.header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sw{position:relative}
+.sw i.arrow{position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none}
+select{
+  appearance:none;padding:7px 30px 7px 12px;border-radius:var(--radius-sm);
+  border:1px solid var(--border2);background:var(--surface2);color:var(--text);
+  font-size:13px;font-family:'IBM Plex Sans Thai',sans-serif;cursor:pointer;transition:border-color .15s;
+}
+select:hover{border-color:var(--brown)}
+select:focus{outline:none;border-color:var(--brown)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(44,36,22,.45);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);max-width:600px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-md);animation:popIn .18s ease}
+@keyframes popIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1;gap:10px}
+.modal-title{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--text)}
+.modal-close{width:30px;height:30px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:16px;transition:all .15s}
+.modal-close:hover{background:var(--red-bg);color:var(--red);border-color:var(--red)}
+.modal-body{padding:1.1rem 1.25rem;font-size:14px}
+
+/* MAIN */
+.main{max-width:1140px;margin:0 auto;padding:1.75rem 2rem}
+
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem}
+.kpi-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:1.1rem 1.2rem;cursor:default;transition:all .18s;position:relative;overflow:hidden;
+}
+.kpi-card.clickable{cursor:pointer}
+.kpi-card.clickable:hover{border-color:var(--border2);box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.kpi-icon{font-size:22px;margin-bottom:.6rem}
+.kpi-label{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:.4rem}
+.kpi-num{font-family:'IBM Plex Mono',monospace;font-size:40px;font-weight:500;line-height:1;margin-bottom:.3rem}
+.kpi-sub{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px}
+.c-gray .kpi-num{color:var(--text)}
+.c-green .kpi-icon,.c-green .kpi-num{color:var(--green)}
+.c-red .kpi-icon,.c-red .kpi-num{color:var(--red)}
+.c-amber .kpi-icon,.c-amber .kpi-num{color:var(--amber)}
+.kpi-expand{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1rem;display:none;animation:slideDown .2s ease}
+.kpi-expand.open{display:block}
+.expand-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:.875rem;display:flex;align-items:center;gap:6px}
+.sub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+.sub-card{background:var(--surface2);border-radius:var(--radius-sm);padding:.875rem 1rem;border:1px solid var(--border)}
+.sub-card-label{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.4rem;display:flex;align-items:center;gap:4px}
+.sub-card-num{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:500;color:var(--green)}
+.sub-card-num.amber{color:var(--amber)}.sub-card-num.teal{color:var(--teal)}
+
+/* FLOW CARD */
+.flow-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  margin-bottom:1.25rem;overflow:hidden;
+}
+.flow-toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.1rem 1.4rem;cursor:pointer;transition:background .15s;user-select:none;
+}
+.flow-toggle:hover{background:var(--surface2)}
+.flow-toggle-left{display:flex;align-items:center;gap:.875rem}
+.flow-icon-wrap{
+  width:44px;height:44px;border-radius:var(--radius-sm);
+  background:linear-gradient(135deg,#D4C4A8 0%,#C4B094 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;color:var(--brown);flex-shrink:0;
+  box-shadow:0 2px 6px rgba(122,96,72,.2);
+}
+.flow-toggle-text h3{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-.2px}
+.flow-toggle-text p{font-size:12px;color:var(--text3);margin-top:2px}
+.flow-toggle-right{display:flex;align-items:center;gap:8px}
+
+/* SECTION */
+.section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:1rem;overflow:hidden}
+.section-head{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem .875rem;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;user-select:none}
+.section-head:hover{background:var(--surface2)}
+.section-title{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;letter-spacing:-.2px;color:var(--text)}
+.section-body{padding:.75rem 1.25rem 1rem;display:none;animation:fadeIn .2s ease}
+.section-body.open{display:block}
+.chip-bar{display:flex;gap:5px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);transition:all .15s}
+.chip:hover{border-color:var(--brown);color:var(--brown)}
+.chip.act{background:var(--brown-bg);color:var(--brown);border-color:var(--border2)}
+.chip i{font-size:12px}
+.sec-chevron{font-size:18px;color:var(--text3);transition:transform .25s;flex-shrink:0}
+.sec-chevron.open{transform:rotate(180deg)}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500}
+.b-blue{background:var(--blue-bg);color:var(--blue-dark)}
+.b-green{background:var(--green-bg);color:var(--green-dark)}
+.b-amber{background:var(--amber-bg);color:var(--amber-dark)}
+.b-red{background:var(--red-bg);color:var(--red-dark)}
+.b-purple{background:var(--purple-bg);color:var(--purple-dark)}
+.b-teal{background:var(--teal-bg);color:var(--teal-dark)}
+.b-brown{background:var(--brown-bg);color:var(--brown)}
+
+/* AVATAR */
+.av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.av-b{background:var(--blue-bg);color:var(--blue)}.av-g{background:var(--green-bg);color:var(--green)}
+.av-a{background:var(--amber-bg);color:var(--amber)}.av-r{background:var(--red-bg);color:var(--red)}
+.av-p{background:var(--purple-bg);color:var(--purple)}.av-t{background:var(--teal-bg);color:var(--teal)}
+
+/* DOT */
+.dot{width:7px;height:7px;border-radius:50%;animation:pulse 1.6s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+.d-b{background:var(--blue-mid)}.d-g{background:#5A9A40}.d-a{background:var(--amber-mid)}
+.d-r{background:#C44848}.d-p{background:#8878CC}.d-t{background:#3A9A7A}
+
+/* YEAR PILLS */
+.list-filters{display:flex;align-items:center;gap:8px;margin-bottom:.875rem;flex-wrap:wrap;padding:.625rem .75rem;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border)}
+.list-filter-label{font-size:11px;color:var(--text3);white-space:nowrap;font-weight:500;text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:4px}
+.ypill{display:inline-flex;align-items:center;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text2);transition:all .15s;font-family:'IBM Plex Mono',monospace}
+.ypill:hover{border-color:var(--brown);color:var(--brown)}
+.ypill.act{background:var(--brown-bg);color:var(--brown);border-color:var(--border2)}
+
+/* TABLE */
+.list-table{width:100%;border-collapse:collapse}
+.list-table th{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);padding:8px 12px;border-bottom:1px solid var(--border);text-align:left;background:var(--surface2)}
+.list-table td{padding:11px 12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.list-table tr:last-child td{border-bottom:none}
+.list-table tbody tr{cursor:pointer;transition:background .12s}
+.list-table tbody tr:hover{background:var(--brown-bg)}
+.tname{font-weight:500;color:var(--text);margin-bottom:1px}
+.tpos{font-size:11px;color:var(--text3)}
+.tdate{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text2)}
+.tdate.na{color:var(--text3)}
+.telig{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--teal)}
+.telig.na{color:var(--text3);font-weight:400}
+.td-center{text-align:center}
+
+/* MODAL DETAIL */
+.det-sec{background:var(--surface2);border-radius:var(--radius-sm);padding:.875rem;margin-bottom:8px;border:1px solid var(--border)}
+.det-sec:last-child{margin-bottom:0}
+.det-sec-head{font-size:12px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);margin-bottom:.875rem;padding-bottom:.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dr{display:flex;gap:8px;margin-bottom:9px;font-size:13px;align-items:baseline}
+.dr:last-of-type{margin-bottom:0}
+.dl{color:var(--text2);flex-shrink:0;min-width:140px;display:flex;align-items:center;gap:5px}
+.dv{color:var(--text);font-weight:500}
+.day-boxes{display:flex;gap:6px;flex-wrap:wrap;margin-top:.875rem}
+.day-box{background:var(--blue-bg);border-radius:var(--radius-sm);padding:7px 11px;text-align:center;min-width:90px;border:1px solid var(--border)}
+.day-box.teal-box{background:var(--teal-bg);border-color:var(--teal)}
+.day-box.teal-box .day-num{color:var(--teal)}
+.day-num{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:500;color:var(--blue);line-height:1}
+.day-lbl{color:var(--text3);font-size:11px;margin-top:4px;line-height:1.4}
+.pending-note{font-size:12px;color:var(--amber-dark);background:var(--amber-bg);border-radius:var(--radius-sm);padding:.5rem .75rem;margin-top:.5rem;border:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.blink-date{animation:pulse 1.2s ease-in-out infinite;color:var(--amber)}
+.elig-box{background:var(--teal-bg);border:1px solid var(--teal);border-radius:var(--radius-sm);padding:.875rem 1rem;margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.elig-icon{font-size:26px;color:var(--teal);flex-shrink:0}
+.elig-label{font-size:12px;color:var(--teal-dark);font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.elig-date{font-size:22px;font-weight:600;color:var(--teal-dark)}
+.elig-sub{font-size:13px;color:var(--teal);margin-top:3px}
+.nodata{text-align:center;padding:2.5rem;color:var(--text3);font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px}
+.update-time{font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace;padding:.75rem 2rem;border-top:1px solid var(--border);margin-top:1rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.live-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;background:var(--green-bg);color:var(--green-dark);font-size:10px;font-weight:500;font-family:'IBM Plex Sans Thai',sans-serif}
+
+@media(max-width:768px){
+  .page-header{padding:1rem}.main{padding:1rem}
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .list-table th:nth-child(4),.list-table td:nth-child(4){display:none}
+}
+@media(max-width:480px){
+  .kpi-num{font-size:32px}
+  .list-table th:nth-child(3),.list-table td:nth-child(3){display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner" id="loadingSpinner"></div>
+  <div class="loading-text" id="loadingText">กำลังโหลดข้อมูลจาก Google Sheet...</div>
+  <div id="debugLog" style="font-size:11px;color:var(--text2);margin-top:4px;text-align:left;max-width:380px;line-height:1.7"></div>
+  <div class="error-box" id="errorBox"></div>
+  <button id="retryBtn" onclick="retryLoad()" style="display:none;margin-top:8px;padding:7px 18px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-family:inherit;font-size:13px">🔄 ลองอีกครั้ง</button>
+</div>
+
+<header class="page-header">
+  <div class="logo">
+    <div class="logo-badge">C8</div>
+    <div class="logo-text">
+      <h1>C8 Dashboard</h1>
+      <p>ติดตาม workflow การประเมินตำแหน่งชำนาญการ</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="sw">
+      <select id="posF" onchange="render()">
+        <option value="">ทุกตำแหน่ง/ระดับ</option>
+      </select>
+      <i class="ti ti-chevron-down arrow"></i>
+    </div>
+  </div>
+</header>
+
+<!-- Person Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle"></div>
+      <button class="modal-close" onclick="closeModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- Flow Modal -->
+<div class="modal-overlay" id="flowModalOverlay" onclick="closeFlowModalOutside(event)">
+  <div class="modal-box" style="max-width:800px">
+    <div class="modal-header">
+      <div class="modal-title">
+        <span style="width:36px;height:36px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#D4C4A8,#C4B094);display:inline-flex;align-items:center;justify-content:center;font-size:18px;color:var(--brown)"><i class="ti ti-route"></i></span>
+        ขั้นตอนการทำตำแหน่งหลังได้รับการคัดเลือก
+      </div>
+      <button class="modal-close" onclick="closeFlowModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body" id="flowModalBody"></div>
+  </div>
+</div>
+
+<main class="main">
+  <div class="kpi-row" id="kpiRow"></div>
+  <div class="kpi-expand" id="kx-pass">
+    <div class="expand-title"><i class="ti ti-award"></i> ผ่านการประเมิน — รายละเอียด</div>
+    <div class="sub-grid" id="kx-pass-inner"></div>
+  </div>
+  <div class="kpi-expand" id="kx-fix">
+    <div class="expand-title"><i class="ti ti-pencil"></i> รอแก้ไข — รายละเอียด</div>
+    <div class="sub-grid" id="kx-fix-inner"></div>
+  </div>
+
+  <div class="flow-card">
+    <div class="flow-toggle" onclick="openFlowModal()">
+      <div class="flow-toggle-left">
+        <div class="flow-icon-wrap"><i class="ti ti-map-2"></i></div>
+        <div class="flow-toggle-text">
+          <h3>ขั้นตอนการทำตำแหน่งหลังได้รับการคัดเลือก</h3>
+          <p>คลิกเพื่อดู workflow รายละเอียด 7 ขั้นตอน</p>
+        </div>
+      </div>
+      <div class="flow-toggle-right">
+        <span class="badge b-brown" style="font-size:11px"><i class="ti ti-list-numbers" style="font-size:11px"></i> 7 ขั้นตอน</span>
+        <i class="ti ti-chevron-right" style="font-size:18px;color:var(--text3)"></i>
+      </div>
+    </div>
+  </div>
+
+  <div id="mainList"></div>
+</main>
+<div class="update-time" id="updateTime"></div>
+
+<script>
+// ===== FILE ID =====
+const SHEET_ID = '1hbXCaO8spDuEJ8Yqji4YcWUmuKkYEHX4QmWgewGZ3zg';
+
+let DATA = [];
+
+// ===== CSV PARSER (handles quoted fields) =====
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], n = text[i+1];
+    if (inQ) {
+      if (c === '"' && n === '"') { field += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else field += c;
+    } else {
+      if (c === '"') { inQ = true; }
+      else if (c === ',') { row.push(field.trim()); field = ''; }
+      else if (c === '\r' && n === '\n') { row.push(field.trim()); rows.push(row); row = []; field = ''; i++; }
+      else if (c === '\n' || c === '\r') { row.push(field.trim()); rows.push(row); row = []; field = ''; }
+      else field += c;
+    }
+  }
+  if (field || row.length) { row.push(field.trim()); rows.push(row); }
+  return rows;
+}
+
+// Convert Gregorian year → Buddhist 2-digit year
+// 2-digit: 26 → 69 (AD 2026 = BE 2569, last 2 digits: +43)
+// 4-digit: 2026 → 69 (subtract 2000 then +43)
+function convertDateToBE(dateStr) {
+  if (!dateStr || !dateStr.trim()) return '';
+  const parts = dateStr.split('/');
+  if (parts.length !== 3) return dateStr;
+  let yr = parseInt(parts[2]);
+  if (isNaN(yr)) return dateStr;
+  if (yr >= 2000) yr = yr - 2000 + 43; // 4-digit Gregorian
+  else if (yr < 100) yr = yr + 43;      // 2-digit Gregorian
+  return `${parts[0]}/${parts[1]}/${yr}`;
+}
+
+function buildData(rows) {
+  return rows
+    .filter(col => col.length >= 3 && col[1] && col[1].trim())
+    .map((col, idx) => {
+      const get = i => (col[i] || '').trim();
+      const r2Submit = get(12);
+      const r2Check  = get(13);
+      const r2Sent   = get(14);
+      const r2Result = get(15);
+      const r2ResDate= get(16);
+      const r2Order  = get(17);
+      const hasR2 = r2Submit || r2Check || r2Sent || r2Result || r2ResDate || r2Order;
+      return {
+        id: idx + 1,
+        name: get(1),
+        pos: get(2),
+        eligibleDate: convertDateToBE(get(3)),
+        r1: {
+          submit:     convertDateToBE(get(4)),
+          check:      get(5),
+          sent:       convertDateToBE(get(6)),
+          result:     get(7),
+          resultDate: convertDateToBE(get(8)),
+          deadline:   convertDateToBE(get(9)),
+          order:      convertDateToBE(get(10))
+        },
+        r2: hasR2 ? {
+          submit:     convertDateToBE(r2Submit),
+          check:      r2Check,
+          sent:       convertDateToBE(r2Sent),
+          result:     r2Result,
+          resultDate: convertDateToBE(r2ResDate),
+          order:      convertDateToBE(r2Order)
+        } : null
+      };
+    });
+}
+
+// ===== DEBUG LOG (visible on screen) =====
+function dbg(msg) {
+  const el = document.getElementById('debugLog');
+  if (el) el.innerHTML += `<div>→ ${msg}</div>`;
+  console.log('[C8]', msg);
+}
+
+// ===== FETCH WITH TIMEOUT =====
+async function fetchT(url, ms) {
+  const c = new AbortController();
+  const id = setTimeout(() => c.abort(), ms);
+  try {
+    const r = await fetch(url, {signal: c.signal});
+    clearTimeout(id);
+    return r;
+  } catch(e) {
+    clearTimeout(id);
+    throw e;
+  }
+}
+
+// ===== METHOD 1: CORS PROXY → GVIZ JSON =====
+async function loadViaProxy() {
+  const gvizUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+  const proxies = [
+    ['allorigins', `https://api.allorigins.win/raw?url=${encodeURIComponent(gvizUrl)}`],
+    ['corsproxy',  `https://corsproxy.io/?${encodeURIComponent(gvizUrl)}`],
+  ];
+  for (const [name, proxyUrl] of proxies) {
+    try {
+      dbg(`ลอง ${name}...`);
+      const r = await fetchT(proxyUrl, 12000);
+      if (!r.ok) { dbg(`${name}: HTTP ${r.status}`); continue; }
+      const text = await r.text();
+      if (text.trim().startsWith('<')) { dbg(`${name}: ได้ HTML (sheet อาจไม่ public)`); continue; }
+      const m = text.match(/setResponse\(([\s\S]+?)\);\s*$/);
+      if (!m) { dbg(`${name}: parse ล้มเหลว`); continue; }
+      const data = JSON.parse(m[1]);
+      if (data && data.table) { dbg(`${name}: ✓`); return data.table; }
+      dbg(`${name}: ไม่มี table`);
+    } catch(e) { dbg(`${name}: ${e.message}`); }
+  }
+  throw new Error('CORS proxy ทุกตัวล้มเหลว');
+}
+
+// ===== METHOD 2: JSONP FALLBACK =====
+function loadViaJSONP() {
+  return new Promise((resolve, reject) => {
+    dbg('ลอง JSONP...');
+    const cbName = '_gsCb' + Date.now();
+    const timeoutId = setTimeout(() => {
+      delete window[cbName];
+      reject(new Error('JSONP timeout — ตรวจสอบว่า Google Sheet ตั้งค่า "Anyone with the link"'));
+    }, 12000);
+    window[cbName] = function(response) {
+      clearTimeout(timeoutId);
+      delete window[cbName];
+      if (!response || response.status === 'error') {
+        reject(new Error('gviz error: ' + JSON.stringify(response && response.errors)));
+        return;
+      }
+      dbg('JSONP: ✓');
+      resolve(response.table);
+    };
+    const script = document.createElement('script');
+    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;handler:${cbName}`;
+    script.onerror = () => { clearTimeout(timeoutId); delete window[cbName]; reject(new Error('JSONP script load error')); };
+    document.head.appendChild(script);
+  });
+}
+
+// Extract cell value from gviz JSON (handles Date objects and text)
+function extractGvizCell(cell) {
+  if (!cell || cell.v === null || cell.v === undefined) return '';
+  const v = cell.v;
+  // Date value: "Date(2026,2,19)" — month is 0-indexed
+  if (typeof v === 'string' && v.startsWith('Date(')) {
+    const m = v.match(/Date\((\d+),(\d+),(\d+)\)/);
+    if (m) return `${parseInt(m[2])+1}/${parseInt(m[3])}/${parseInt(m[1])}`;
+    return cell.f || '';
+  }
+  // Number used as date (Excel serial) — use formatted
+  if (typeof v === 'number' && cell.f) return cell.f;
+  return cell.f !== null && cell.f !== undefined ? cell.f : String(v);
+}
+
+// ===== LOAD DATA =====
+async function loadData() {
+  // Reset UI
+  document.getElementById('loadingOverlay').classList.remove('hidden');
+  document.getElementById('loadingSpinner').style.display = '';
+  document.getElementById('loadingText').style.display = '';
+  document.getElementById('debugLog').innerHTML = '';
+  document.getElementById('errorBox').classList.remove('show');
+  document.getElementById('errorBox').textContent = '';
+  document.getElementById('retryBtn').style.display = 'none';
+
+  try {
+    let rows;
+    if (window.cowork && window.cowork.callMcpTool) {
+      // ===== Cowork app: use MCP =====
+      dbg('Cowork MCP...');
+      const r = await window.cowork.callMcpTool(
+        'mcp__2ab58198-5cf1-41c3-ad51-21c43099d588__read_file_content',
+        { fileId: SHEET_ID }
+      );
+      if (r.isError) throw new Error('MCP error');
+      const payload = r.structuredContent ?? JSON.parse(r.content[0].text);
+      const md = payload.fileContent || '';
+      const lines = md.trim().split('\n').filter(l => l.trim());
+      rows = lines.slice(2).map(line => line.split('|').slice(1,-1).map(c=>c.trim()));
+      dbg('MCP: ✓');
+    } else {
+      // ===== GitHub Pages / browser: try proxy then JSONP =====
+      let table;
+      try {
+        table = await loadViaProxy();
+      } catch(e1) {
+        dbg('Proxy ล้มเหลวทั้งหมด ลอง JSONP...');
+        table = await loadViaJSONP();
+      }
+      // gviz row 0 = col headers, row 1 = sub-headers, rows 2+ = data
+      rows = (table.rows || []).slice(2).map(row => {
+        const cells = row.c || [];
+        while (cells.length < 18) cells.push(null);
+        return cells.map(cell => extractGvizCell(cell));
+      });
+    }
+
+    DATA = buildData(rows).sort((a, b) => {
+      const da = parseDate(a.r1 && a.r1.submit ? a.r1.submit : '');
+      const db = parseDate(b.r1 && b.r1.submit ? b.r1.submit : '');
+      if (!da && !db) return 0; if (!da) return 1; if (!db) return -1;
+      return da - db;
+    });
+
+    const positions = [...new Set(DATA.map(p => p.pos).filter(Boolean))].sort();
+    const sel = document.getElementById('posF');
+    sel.innerHTML = '<option value="">ทุกตำแหน่ง/ระดับ</option>' +
+      positions.map(p => `<option value="${p}">${p}</option>`).join('');
+
+    const now = new Date();
+    document.getElementById('updateTime').innerHTML =
+      `<span class="live-badge"><i class="ti ti-refresh" style="font-size:10px"></i> Live</span>` +
+      `อัปเดตล่าสุด: ${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()+543}` +
+      ` เวลา ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} น.` +
+      ` &nbsp;|&nbsp; <i class="ti ti-table" style="font-size:11px"></i> Google Sheet · ${DATA.length} รายการ`;
+
+    document.getElementById('loadingOverlay').classList.add('hidden');
+    render();
+  } catch(e) {
+    document.getElementById('loadingSpinner').style.display = 'none';
+    document.getElementById('loadingText').textContent = 'โหลดข้อมูลไม่สำเร็จ';
+    const eb = document.getElementById('errorBox');
+    eb.innerHTML = `<b>Error:</b> ${e.message || e}<br><br>` +
+      `<b>วิธีแก้:</b><br>` +
+      `1. เปิด Google Sheet<br>` +
+      `2. กด Share → เปลี่ยนเป็น <b>"Anyone with the link"</b> → Viewer<br>` +
+      `3. กด "Retry" ด้านล่าง`;
+    eb.classList.add('show');
+    document.getElementById('retryBtn').style.display = '';
+  }
+}
+
+function retryLoad() { loadData(); }
+
+// ===== UTILS =====
+function parseDate(s){
+  if(!s) return null;
+  const p=s.split('/');
+  if(p.length<3) return null;
+  let y=parseInt(p[2]);
+  if(y<100) y+=2500;
+  return new Date(y-543,parseInt(p[0])-1,parseInt(p[1]));
+}
+function diffDays(a,b){if(!a||!b)return null;return Math.round(Math.abs(b-a)/86400000);}
+function fmt(s){return s||'—'}
+function ini(n){return n.replace(/^(นาย|นาง|นางสาว)/,'').trim().charAt(0);}
+function getEligYear(p){const d=parseDate(p.eligibleDate);return d?d.getFullYear()+543:null;}
+function getDaysFromEligToOrder(p){
+  const elig=parseDate(p.eligibleDate);if(!elig)return null;
+  const ord=p.r2&&p.r2.order?parseDate(p.r2.order):p.r1&&p.r1.order?parseDate(p.r1.order):null;
+  return ord?diffDays(elig,ord):null;
+}
+
+// ===== STATUS =====
+function isPassR1(p){return p.r1&&p.r1.result&&p.r1.result.includes('ผ่านการประเมิน')&&!p.r1.result.includes('ไม่ผ่าน');}
+function isPassR2(p){return p.r2&&p.r2.result&&p.r2.result.includes('ผ่านการประเมิน')&&!p.r2.result.includes('ไม่ผ่าน');}
+function isPass(p){return isPassR1(p)||isPassR2(p);}
+function isFailR1(p){return p.r1&&p.r1.result&&p.r1.result.includes('ไม่ผ่านการประเมิน');}
+function isFailR2(p){return p.r2&&p.r2.result&&p.r2.result.includes('ไม่ผ่านการประเมิน');}
+function isFail(p){return isFailR1(p)||isFailR2(p);}
+function isFixType(p){return p.r1&&p.r1.result&&p.r1.result.includes('ปรับปรุงแก้ไข');}
+function isPendingR2(p){return p.r2&&p.r2.pending===true;}
+function hasSentR2(p){return p.r2&&!p.r2.pending&&p.r2.submit;}
+function getStatus(p){
+  if(isPass(p)) return 'pass';
+  if(isFail(p)&&!isFixType(p)) return 'fail';
+  if(isFixType(p)) return 'fix';
+  return 'inprog';
+}
+function overallLabel(p){
+  const s=getStatus(p);
+  if(s==='pass') return isPassR2(p)?{t:'ผ่าน (รอบ 2)',b:'b-green',d:'d-g',av:'av-g'}:{t:'ผ่าน (รอบ 1)',b:'b-green',d:'d-g',av:'av-g'};
+  if(s==='fail') return {t:'ไม่ผ่านการประเมิน',b:'b-red',d:'d-r',av:'av-r'};
+  if(s==='fix'){
+    const is6=p.r1.result.includes('เป็นสาระสำคัญ')&&!p.r1.result.includes('ไม่เป็น');
+    if(!hasSentR2(p)||isPendingR2(p)) return {t:is6?'กำลังแก้ไข (6 เดือน)':'กำลังแก้ไข (2 เดือน)',b:'b-amber',d:'d-a',av:'av-a'};
+    return {t:is6?'ส่งรอบ 2 (6 เดือน)':'ส่งรอบ 2 (2 เดือน)',b:'b-purple',d:'d-p',av:'av-p'};
+  }
+  return {t:'ระหว่างดำเนินงาน',b:'b-blue',d:'d-b',av:'av-b'};
+}
+function getR1Lbl(r){
+  if(!r) return '—';
+  if(r.order) return 'ทำคำสั่งแล้ว';
+  if(r.result&&r.result.includes('ผ่านการประเมิน')&&!r.result.includes('ไม่ผ่าน')) return 'ผ่านการประเมิน';
+  if(r.result&&r.result.includes('ไม่ผ่าน')) return 'ไม่ผ่าน';
+  if(r.result&&r.result.includes('ปรับปรุงแก้ไข')) return r.result.includes('เป็นสาระสำคัญ')&&!r.result.includes('ไม่เป็น')?'ปรับปรุงแก้ไข (6 เดือน)':'ปรับปรุงแก้ไข (2 เดือน)';
+  if(r.result&&r.result.includes('ระหว่าง')) return 'ระหว่างประเมิน';
+  if(r.sent) return 'ส่งหน่วยประเมินแล้ว';
+  return r.check||'ตรวจสอบเอกสาร';
+}
+function getR2Lbl(p){
+  if(!p.r2) return '—';
+  const r=p.r2;
+  if(isPendingR2(p)) return 'กำลังดำเนินการแก้ไข';
+  if(r.order) return 'ทำคำสั่งแล้ว';
+  if(r.result&&r.result.includes('ผ่านการประเมิน')&&!r.result.includes('ไม่ผ่าน')) return 'ผ่านการประเมิน';
+  if(r.result&&r.result.includes('ไม่ผ่าน')) return 'ไม่ผ่าน';
+  if(r.result&&r.result.includes('ระหว่าง')) return 'ระหว่างประเมิน';
+  if(r.sent) return 'ส่งหน่วยประเมินแล้ว';
+  if(r.check) return r.check;
+  return 'รอส่งเอกสาร';
+}
+function badgeCls(lbl){
+  if(lbl.includes('ผ่านการประเมิน')) return 'b-green';
+  if(lbl.includes('ไม่ผ่าน')) return 'b-red';
+  if(lbl.includes('ปรับปรุง')||lbl.includes('แก้ไข')||lbl.includes('กำลัง')) return 'b-amber';
+  if(lbl.includes('คำสั่ง')) return 'b-teal';
+  return 'b-blue';
+}
+
+// ===== FLOW MODAL =====
+function openFlowModal(){
+  const steps=[
+    {num:'①',icon:'ti-speakerphone',label:'ประกาศประเมินบุคคล',bg:'var(--teal-bg)',color:'var(--teal-dark)',desc:'ประกาศรายชื่อบุคคลที่ได้รับการคัดเลือกเข้ารับการประเมินเพื่อแต่งตั้งให้ดำรงตำแหน่ง'},
+    {num:'②',icon:'ti-send',label:'ส่งผลงาน',bg:'var(--blue-bg)',color:'var(--blue-dark)',desc:'ผู้สมัครส่งเอกสารผลงานเพื่อรับการประเมิน'},
+    {num:'③',icon:'ti-search',label:'สสจ. ตรวจสอบ',bg:'var(--amber-bg)',color:'var(--amber-dark)',desc:'สำนักงานสาธารณสุขจังหวัดตรวจสอบความถูกต้องของเอกสาร'},
+    {num:'④',icon:'ti-building',label:'ส่งหน่วยประเมิน',bg:'var(--purple-bg)',color:'var(--purple-dark)',desc:'ส่งเอกสารไปยังคณะกรรมการหน่วยประเมินวิชาการ'},
+    {num:'⑤',icon:'ti-checkbox',label:'ผลการพิจารณา',bg:'var(--teal-bg)',color:'var(--teal-dark)',desc:'คณะกรรมการพิจารณาและมีผลการประเมิน'},
+    {num:'⑥',icon:'ti-bell',label:'แจ้งผลกลับ',bg:'var(--green-bg)',color:'var(--green-dark)',desc:'แจ้งผลกลับมายัง สสจ. และผู้สมัคร'},
+    {num:'⑦',icon:'ti-file-check',label:'ทำคำสั่ง',bg:'var(--surface2)',color:'var(--brown)',desc:'ดำเนินการออกคำสั่งแต่งตั้งตำแหน่ง'},
+  ];
+  const stepsHTML=steps.map(s=>`
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="width:44px;height:44px;border-radius:var(--radius-sm);background:${s.bg};border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <i class="ti ${s.icon}" style="font-size:20px;color:${s.color}"></i>
+      </div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text3)">${s.num}</span>
+          <span style="font-size:14px;font-weight:600;color:var(--text)">${s.label}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2)">${s.desc}</div>
+      </div>
+    </div>`).join('');
+  const branchHTML=`
+    <div style="margin-top:1rem;background:var(--amber-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.875rem 1rem">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:.75rem;font-size:12px;font-weight:600;color:var(--amber-dark)">
+        <i class="ti ti-refresh" style="font-size:16px"></i> กรณีปรับปรุงแก้ไข
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;font-weight:500;color:var(--amber-dark)">
+        <span style="padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);display:inline-flex;align-items:center;gap:4px"><i class="ti ti-pencil" style="font-size:13px"></i> แก้ไข &amp; ส่งรอบที่ 2</span>
+        <i class="ti ti-chevron-right" style="font-size:16px;color:var(--text3)"></i>
+        <span style="padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);display:inline-flex;align-items:center;gap:4px"><i class="ti ti-building" style="font-size:13px"></i> ③ ส่งหน่วยประเมิน</span>
+        <i class="ti ti-chevron-right" style="font-size:16px;color:var(--text3)"></i>
+        <span style="padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);display:inline-flex;align-items:center;gap:4px"><i class="ti ti-checkbox" style="font-size:13px"></i> ④ ผลการพิจารณา</span>
+        <i class="ti ti-chevron-right" style="font-size:16px;color:var(--text3)"></i>
+        <span style="padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);display:inline-flex;align-items:center;gap:4px"><i class="ti ti-file-check" style="font-size:13px"></i> ⑥ ทำคำสั่ง</span>
+      </div>
+      <div style="margin-top:.625rem;font-size:11px;color:var(--amber-dark)">
+        <i class="ti ti-info-circle" style="font-size:12px"></i>
+        ปรับปรุงแก้ไขไม่เป็นสาระสำคัญ: กำหนด <strong>2 เดือน</strong> · ปรับปรุงแก้ไขเป็นสาระสำคัญ: กำหนด <strong>6 เดือน</strong>
+      </div>
+    </div>`;
+  document.getElementById('flowModalBody').innerHTML=`<div>${stepsHTML}</div>${branchHTML}`;
+  document.getElementById('flowModalOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeFlowModal(){document.getElementById('flowModalOverlay').classList.remove('open');document.body.style.overflow='';}
+function closeFlowModalOutside(e){if(e.target===document.getElementById('flowModalOverlay'))closeFlowModal();}
+
+// ===== PERSON MODAL =====
+function openModal(pid){
+  const p=DATA.find(x=>x.id===pid);if(!p)return;
+  const ol=overallLabel(p);
+  document.getElementById('modalTitle').innerHTML=`<span class="av ${ol.av}" style="width:28px;height:28px;font-size:12px">${ini(p.name)}</span>${p.name}`;
+  document.getElementById('modalBody').innerHTML=buildModalBody(p);
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('open');document.body.style.overflow='';}
+function closeModalOutside(e){if(e.target===document.getElementById('modalOverlay'))closeModal();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeFlowModal();}});
+
+function eligBoxHTML(p){
+  if(!p.eligibleDate) return '';
+  const dEO=getDaysFromEligToOrder(p);
+  const sub=dEO!==null?`ใช้เวลา ${dEO} วัน จนถึงวันที่ทำคำสั่ง`:'ยังไม่มีคำสั่ง';
+  return `<div class="elig-box"><div class="elig-icon"><i class="ti ti-calendar-event"></i></div>
+    <div><div class="elig-label"><i class="ti ti-star" style="font-size:11px"></i> วันที่ประกาศประเมินบุคคล</div>
+    <div class="elig-date">${fmt(p.eligibleDate)}</div><div class="elig-sub">${sub}</div></div></div>`;
+}
+function roundSectionHTML(r,rnum,p){
+  if(!r) return '';
+  const isPend=rnum===2&&p&&isPendingR2(p);
+  const lbl=rnum===1?getR1Lbl(r):getR2Lbl(p);
+  const bc=badgeCls(lbl);
+  const dLine=r.deadline?`<div class="dr"><span class="dl"><i class="ti ti-calendar-due"></i> กำหนดส่งแก้ไข</span><span class="dv" style="color:var(--amber)">${fmt(r.deadline)}</span></div>`:'';
+  const elig=parseDate(p.eligibleDate);
+  const se=parseDate(r.sent);
+  const rd=parseDate(r.resultDate);
+  const od=parseDate(r.order);
+  const eligToSent=(elig&&se)?diffDays(elig,se):null;
+  const sentToResult=(se&&rd)?diffDays(se,rd):null;
+  const resultToOrder=(rd&&od)?diffDays(rd,od):null;
+  const eligToOrd=(elig&&od)?diffDays(elig,od):null;
+  const box1=eligToSent!==null?`<div class="day-box"><div class="day-num">${eligToSent}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">ประกาศประเมิน<br>→ ส่งหน่วยประเมิน</div></div>`:'';
+  const box2=sentToResult!==null?`<div class="day-box"><div class="day-num">${sentToResult}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">จำนวนวันที่หน่วยประเมิน<br>อ่านผลงาน</div></div>`:'';
+  const box3=resultToOrder!==null?`<div class="day-box"><div class="day-num">${resultToOrder}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">ผล → คำสั่ง</div></div>`:'';
+  const box4=eligToOrd!==null?`<div class="day-box teal-box"><div class="day-num">${eligToOrd}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">วันที่แจ้งผลประเมิน<br>ถึง วันที่สสจ.ทำคำสั่ง</div></div>`:'';
+  if(isPend){
+    return `<div class="det-sec"><div class="det-sec-head"><i class="ti ti-refresh"></i> รอบที่ ${rnum} <span class="badge b-amber" style="font-size:11px">${lbl}</span></div>
+      <div class="pending-note"><i class="ti ti-clock"></i> อยู่ระหว่างดำเนินการแก้ไข · กำหนดส่ง: <span class="blink-date">${fmt(p.r1.deadline)}</span></div></div>`;
+  }
+  return `<div class="det-sec"><div class="det-sec-head"><i class="ti ti-${rnum===1?'file-text':'refresh'}"></i> รอบที่ ${rnum} <span class="badge ${bc}" style="font-size:11px">${lbl}</span></div>
+    ${r.submit?`<div class="dr"><span class="dl"><i class="ti ti-send"></i> วันที่ส่งผลงาน</span><span class="dv">${fmt(r.submit)}</span></div>`:''}
+    ${r.check?`<div class="dr"><span class="dl"><i class="ti ti-search"></i> สสจ. ตรวจสอบ</span><span class="dv">${r.check}</span></div>`:''}
+    ${r.sent?`<div class="dr"><span class="dl"><i class="ti ti-building"></i> วันที่ส่งหน่วยประเมิน</span><span class="dv">${fmt(r.sent)}</span></div>`:''}
+    ${r.result?`<div class="dr"><span class="dl"><i class="ti ti-checkbox"></i> ผลการพิจารณา</span><span class="dv">${r.result}</span></div>`:''}
+    ${r.resultDate?`<div class="dr"><span class="dl"><i class="ti ti-bell"></i> วันที่แจ้งผลกลับ</span><span class="dv">${fmt(r.resultDate)}</span></div>`:''}
+    ${dLine}
+    ${r.order?`<div class="dr"><span class="dl"><i class="ti ti-file-check"></i> ทำคำสั่ง</span><span class="dv" style="color:var(--teal)">${fmt(r.order)}</span></div>`:''}
+    ${(box1||box2||box3||box4)?`<div class="day-boxes">${box1}${box2}${box3}${box4}</div>`:''}
+  </div>`;
+}
+function buildModalBody(p){
+  return eligBoxHTML(p)+`<div style="margin-bottom:8px"><span class="badge b-brown" style="font-size:11px">${p.pos}</span></div>`+
+    roundSectionHTML(p.r1,1,p)+(p.r2?roundSectionHTML(p.r2,2,p):'');
+}
+
+// ===== STATE =====
+let chip1='all',chip2='all',yearFilter1='all',yearFilter2='all',activeKpi=null;
+let secOpen1=true,secOpen2=true;
+
+function toggleKpi(key){
+  document.querySelectorAll('.kpi-expand').forEach(e=>e.classList.remove('open'));
+  activeKpi=activeKpi===key?null:key;
+  if(activeKpi) document.getElementById('kx-'+activeKpi).classList.add('open');
+}
+function toggleSection(round,event){
+  if(event&&event.target.closest('.chip-bar')) return;
+  if(round===1){
+    secOpen1=!secOpen1;
+    document.getElementById('secbody1').classList.toggle('open',secOpen1);
+    document.getElementById('secchev1').classList.toggle('open',secOpen1);
+  } else {
+    secOpen2=!secOpen2;
+    document.getElementById('secbody2').classList.toggle('open',secOpen2);
+    document.getElementById('secchev2').classList.toggle('open',secOpen2);
+  }
+}
+function setChip(el,round){
+  const s=el.dataset.s;
+  if(round==='1')chip1=s;else chip2=s;
+  document.querySelectorAll(`[data-r="${round}"]`).forEach(c=>c.classList.remove('act'));
+  el.classList.add('act');renderLists();
+}
+function setYear(yr,round){
+  if(round==='1')yearFilter1=yr;else yearFilter2=yr;renderLists();
+}
+function filtered(){const pos=document.getElementById('posF').value;return DATA.filter(p=>!pos||p.pos===pos);}
+function matchC1(p,c){const s=getStatus(p);if(c==='all')return true;return c===s;}
+function matchC2(p,c){
+  if(!p.r2)return false;if(c==='all')return true;
+  if(c==='pass')return isPassR2(p);if(c==='fail')return isFailR2(p);
+  if(c==='pending')return isPendingR2(p);
+  if(c==='inprog')return !p.r2.order&&!isPendingR2(p)&&!isPassR2(p)&&!isFailR2(p);
+  return true;
+}
+function getYears(data){const s=new Set();data.forEach(p=>{const y=getEligYear(p);if(y)s.add(y);});return[...s].sort();}
+function yearPillsHTML(yrs,active,round){
+  return `<div class="ypill ${active==='all'?'act':''}" onclick="setYear('all','${round}')">ทั้งหมด</div>`+
+    yrs.map(y=>`<div class="ypill ${active==y?'act':''}" onclick="setYear(${y},'${round}')">${y}</div>`).join('');
+}
+function tableRow(p){
+  const ol=overallLabel(p);
+  const orderDate=p.r2&&p.r2.order?p.r2.order:p.r1&&p.r1.order?p.r1.order:'';
+  const dEO=getDaysFromEligToOrder(p);
+  return `<tr onclick="openModal(${p.id})" title="คลิกดูรายละเอียด">
+    <td><div style="display:flex;align-items:center;gap:10px">
+      <div class="av ${ol.av}" style="width:34px;height:34px;font-size:12px;flex-shrink:0">${ini(p.name)}</div>
+      <div><div class="tname">${p.name}</div><div class="tpos">${p.pos}</div></div>
+    </div></td>
+    <td class="td-center"><span class="badge ${ol.b}" style="font-size:11px">${ol.t}</span></td>
+    <td><div class="tdate ${p.eligibleDate?'':'na'}" style="display:flex;align-items:center;gap:4px"><i class="ti ti-star" style="font-size:11px;color:var(--teal)"></i>${p.eligibleDate||'—'}</div></td>
+    <td><div class="tdate ${orderDate?'':'na'}" style="display:flex;align-items:center;gap:4px"><i class="ti ti-file-check" style="font-size:11px;color:var(--text3)"></i>${orderDate||'—'}</div></td>
+    <td class="telig ${dEO!==null?'':'na'}">${dEO!==null?dEO+' วัน':'—'}</td>
+    <td class="td-center"><div style="display:flex;align-items:center;gap:5px;justify-content:center"><div class="dot ${ol.d}"></div><i class="ti ti-chevron-right" style="font-size:13px;color:var(--text3)"></i></div></td>
+  </tr>`;
+}
+
+// ===== KPI =====
+function renderKPI(data){
+  const total=data.length,pR1=data.filter(isPassR1),pR2=data.filter(isPassR2),pAll=data.filter(isPass);
+  const fAll=data.filter(isFail),fixAll=data.filter(isFixType);
+  const fix2=fixAll.filter(p=>p.r1.result.includes('ไม่เป็นสาระสำคัญ'));
+  const fix6=fixAll.filter(p=>p.r1.result.includes('เป็นสาระสำคัญ')&&!p.r1.result.includes('ไม่เป็น'));
+  document.getElementById('kpiRow').innerHTML=`
+    <div class="kpi-card c-gray"><div class="kpi-icon"><i class="ti ti-users" style="color:var(--text3)"></i></div><div class="kpi-label">ทั้งหมด</div><div class="kpi-num">${total}</div><div class="kpi-sub"><i class="ti ti-user"></i> ราย</div></div>
+    <div class="kpi-card c-green clickable" onclick="toggleKpi('pass')"><div class="kpi-icon"><i class="ti ti-award"></i></div><div class="kpi-label">ผ่านการประเมิน</div><div class="kpi-num">${pAll.length}</div><div class="kpi-sub"><i class="ti ti-chevron-down"></i> รอบ 1: ${pR1.length} · รอบ 2: ${pR2.length}</div></div>
+    <div class="kpi-card c-red"><div class="kpi-icon"><i class="ti ti-circle-x"></i></div><div class="kpi-label">ไม่ผ่านการประเมิน</div><div class="kpi-num">${fAll.length}</div><div class="kpi-sub">รอบ 1: ${data.filter(isFailR1).length} · รอบ 2: ${data.filter(isFailR2).length}</div></div>
+    <div class="kpi-card c-amber clickable" onclick="toggleKpi('fix')"><div class="kpi-icon"><i class="ti ti-pencil"></i></div><div class="kpi-label">รอแก้ไข</div><div class="kpi-num">${fixAll.length}</div><div class="kpi-sub"><i class="ti ti-chevron-down"></i> คลิกดูรายละเอียด</div></div>`;
+  document.getElementById('kx-pass-inner').innerHTML=`
+    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-circle-check"></i> ผ่านรอบที่ 1</div><div class="sub-card-num">${pR1.length} <span style="font-size:14px;color:var(--text3)">ราย</span></div></div>
+    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-refresh"></i> ผ่านรอบที่ 2</div><div class="sub-card-num teal">${pR2.length} <span style="font-size:14px;color:var(--t
