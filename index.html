@@ -341,15 +341,17 @@ function parseCSV(text) {
   return rows;
 }
 
-// Convert Gregorian 2-digit year → Buddhist 2-digit year (AD 26 → BE 69)
+// Convert Gregorian year → Buddhist 2-digit year
+// 2-digit: 26 → 69 (AD 2026 = BE 2569, last 2 digits: +43)
+// 4-digit: 2026 → 69 (subtract 2000 then +43)
 function convertDateToBE(dateStr) {
   if (!dateStr || !dateStr.trim()) return '';
   const parts = dateStr.split('/');
   if (parts.length !== 3) return dateStr;
   let yr = parseInt(parts[2]);
   if (isNaN(yr)) return dateStr;
-  // If 2-digit year: treat as Gregorian, convert to BE 2-digit
-  if (yr < 100) yr = yr + 43;
+  if (yr >= 2000) yr = yr - 2000 + 43; // 4-digit Gregorian
+  else if (yr < 100) yr = yr + 43;      // 2-digit Gregorian
   return `${parts[0]}/${parts[1]}/${yr}`;
 }
 
@@ -391,6 +393,52 @@ function buildData(rows) {
     });
 }
 
+// ===== JSONP LOADER (no CORS issues) =====
+function loadViaJSONP() {
+  return new Promise((resolve, reject) => {
+    const cbName = '_gsCb' + Date.now();
+    const timeoutId = setTimeout(() => {
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      reject(new Error('Timeout 15 วิ — ตรวจสอบว่า Google Sheet ตั้งค่า\n"Anyone with the link" → Viewer/Editor แล้ว'));
+    }, 15000);
+
+    window[cbName] = function(response) {
+      clearTimeout(timeoutId);
+      delete window[cbName];
+      if (!response || response.status === 'error') {
+        reject(new Error('Google Sheets ปฏิเสธคำขอ — ตรวจสอบ Public setting'));
+        return;
+      }
+      resolve(response.table);
+    };
+
+    const script = document.createElement('script');
+    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;handler:${cbName}`;
+    script.onerror = () => {
+      clearTimeout(timeoutId);
+      delete window[cbName];
+      reject(new Error('โหลด script ไม่สำเร็จ — ตรวจสอบ Public setting'));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+// Extract cell value from gviz JSON (handles Date objects and text)
+function extractGvizCell(cell) {
+  if (!cell || cell.v === null || cell.v === undefined) return '';
+  const v = cell.v;
+  // Date value: "Date(2026,2,19)" — month is 0-indexed
+  if (typeof v === 'string' && v.startsWith('Date(')) {
+    const m = v.match(/Date\((\d+),(\d+),(\d+)\)/);
+    if (m) return `${parseInt(m[2])+1}/${parseInt(m[3])}/${parseInt(m[1])}`;
+    return cell.f || '';
+  }
+  // Number used as date (Excel serial) — use formatted
+  if (typeof v === 'number' && cell.f) return cell.f;
+  return cell.f !== null && cell.f !== undefined ? cell.f : String(v);
+}
+
 // ===== LOAD DATA FROM GOOGLE SHEETS CSV =====
 async function loadData() {
   document.getElementById('loadingOverlay').classList.remove('hidden');
@@ -409,26 +457,14 @@ async function loadData() {
       const lines = md.trim().split('\n').filter(l => l.trim());
       rows = lines.slice(2).map(line => line.split('|').slice(1,-1).map(c=>c.trim()));
     } else {
-      // GitHub Pages / browser: fetch CSV via gviz endpoint (CORS-friendly)
-      const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 12000);
-      let resp;
-      try {
-        resp = await fetch(csvUrl, { signal: ctrl.signal });
-      } catch(fe) {
-        clearTimeout(timer);
-        if (fe.name === 'AbortError') throw new Error('Timeout — Sheet อาจยังไม่ได้ตั้งเป็น Public\nกรุณาไปที่ Google Sheet → Share → "Anyone with the link" → Viewer');
-        throw fe;
-      }
-      clearTimeout(timer);
-      if (!resp.ok) throw new Error('โหลดไม่สำเร็จ (HTTP ' + resp.status + ')\nกรุณาตั้ง Sheet เป็น Public: Share → "Anyone with the link" → Viewer');
-      const text = await resp.text();
-      if (text.trim().startsWith('<!') || text.trim().startsWith('<html')) {
-        throw new Error('Sheet ยังไม่ได้ตั้งเป็น Public\nกรุณาไปที่ Google Sheet → Share → "Anyone with the link" → Viewer แล้วลองใหม่');
-      }
-      const allRows = parseCSV(text);
-      rows = allRows.slice(1); // gviz returns 1 header row
+      // GitHub Pages / browser: JSONP via Google Visualization API (no CORS issues)
+      const table = await loadViaJSONP();
+      // gviz uses row 1 as column labels → table.rows[0]=row2, rows[1]=row3, rows[2]=first data row
+      rows = (table.rows || []).slice(2).map(row => {
+        const cells = row.c || [];
+        while (cells.length < 18) cells.push(null);
+        return cells.map(cell => extractGvizCell(cell));
+      });
     }
 
     DATA = buildData(rows).sort((a, b) => {
@@ -756,21 +792,4 @@ function renderLists(){
               <div class="chip ${chip1==='all'?'act':''}" data-r="1" data-s="all" onclick="setChip(this,'1')">ทั้งหมด</div>
               <div class="chip ${chip1==='pass'?'act':''}" data-r="1" data-s="pass" onclick="setChip(this,'1')"><i class="ti ti-check"></i> ผ่าน</div>
               <div class="chip ${chip1==='fail'?'act':''}" data-r="1" data-s="fail" onclick="setChip(this,'1')"><i class="ti ti-x"></i> ไม่ผ่าน</div>
-              <div class="chip ${chip1==='fix'?'act':''}" data-r="1" data-s="fix" onclick="setChip(this,'1')"><i class="ti ti-pencil"></i> รอแก้ไข</div>
-              <div class="chip ${chip1==='inprog'?'act':''}" data-r="1" data-s="inprog" onclick="setChip(this,'1')"><i class="ti ti-loader"></i> ระหว่างดำเนิน</div>
-            </div>
-          </div>
-          <i class="ti ti-chevron-down sec-chevron ${secOpen1?'open':''}" id="secchev1"></i>
-        </div>
-      </div>
-      <div class="section-body ${secOpen1?'open':''}" id="secbody1">
-        <div class="list-filters">
-          <span class="list-filter-label"><i class="ti ti-calendar"></i> ปีที่ประกาศประเมินบุคคล</span>
-          <div style="display:flex;gap:5px;flex-wrap:wrap">${yearPillsHTML(yrs,yearFilter1,'1')}</div>
-        </div>
-        ${r1f.length?thead+r1f.map(tableRow).join('')+'</tbody></table>':'<div class="nodata"><i class="ti ti-mood-empty"></i> ไม่มีรายการ</div>'}
-      </div>
-    </div>
-    <div class="section-card">
-      <div class="section-head" onclick="toggleSection(2,event)">
-        
+              <div class="chip ${chip1==='fix'?'act':''}" data-r="1" data-s="fix" onclick="setChi
