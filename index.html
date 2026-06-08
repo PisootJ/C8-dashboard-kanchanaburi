@@ -234,9 +234,11 @@ select:focus{outline:none;border-color:var(--brown)}
 
 <!-- Loading Overlay -->
 <div class="loading-overlay" id="loadingOverlay">
-  <div class="spinner"></div>
-  <div class="loading-text">กำลังโหลดข้อมูลจาก Google Sheet...</div>
+  <div class="spinner" id="loadingSpinner"></div>
+  <div class="loading-text" id="loadingText">กำลังโหลดข้อมูลจาก Google Sheet...</div>
+  <div id="debugLog" style="font-size:11px;color:var(--text2);margin-top:4px;text-align:left;max-width:380px;line-height:1.7"></div>
   <div class="error-box" id="errorBox"></div>
+  <button id="retryBtn" onclick="retryLoad()" style="display:none;margin-top:8px;padding:7px 18px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-family:inherit;font-size:13px">🔄 ลองอีกครั้ง</button>
 </div>
 
 <header class="page-header">
@@ -393,34 +395,73 @@ function buildData(rows) {
     });
 }
 
-// ===== JSONP LOADER — ใช้ google.visualization.Query.setResponse (classic, reliable) =====
+// ===== DEBUG LOG (visible on screen) =====
+function dbg(msg) {
+  const el = document.getElementById('debugLog');
+  if (el) el.innerHTML += `<div>→ ${msg}</div>`;
+  console.log('[C8]', msg);
+}
+
+// ===== FETCH WITH TIMEOUT =====
+async function fetchT(url, ms) {
+  const c = new AbortController();
+  const id = setTimeout(() => c.abort(), ms);
+  try {
+    const r = await fetch(url, {signal: c.signal});
+    clearTimeout(id);
+    return r;
+  } catch(e) {
+    clearTimeout(id);
+    throw e;
+  }
+}
+
+// ===== METHOD 1: CORS PROXY → GVIZ JSON =====
+async function loadViaProxy() {
+  const gvizUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+  const proxies = [
+    ['allorigins', `https://api.allorigins.win/raw?url=${encodeURIComponent(gvizUrl)}`],
+    ['corsproxy',  `https://corsproxy.io/?${encodeURIComponent(gvizUrl)}`],
+  ];
+  for (const [name, proxyUrl] of proxies) {
+    try {
+      dbg(`ลอง ${name}...`);
+      const r = await fetchT(proxyUrl, 12000);
+      if (!r.ok) { dbg(`${name}: HTTP ${r.status}`); continue; }
+      const text = await r.text();
+      if (text.trim().startsWith('<')) { dbg(`${name}: ได้ HTML (sheet อาจไม่ public)`); continue; }
+      const m = text.match(/setResponse\(([\s\S]+?)\);\s*$/);
+      if (!m) { dbg(`${name}: parse ล้มเหลว`); continue; }
+      const data = JSON.parse(m[1]);
+      if (data && data.table) { dbg(`${name}: ✓`); return data.table; }
+      dbg(`${name}: ไม่มี table`);
+    } catch(e) { dbg(`${name}: ${e.message}`); }
+  }
+  throw new Error('CORS proxy ทุกตัวล้มเหลว');
+}
+
+// ===== METHOD 2: JSONP FALLBACK =====
 function loadViaJSONP() {
   return new Promise((resolve, reject) => {
+    dbg('ลอง JSONP...');
+    const cbName = '_gsCb' + Date.now();
     const timeoutId = setTimeout(() => {
-      reject(new Error('Timeout 15 วิ — ตรวจสอบว่า Google Sheet ตั้งค่า "Anyone with the link" → Viewer/Editor แล้ว'));
-    }, 15000);
-
-    // Define the default gviz callback BEFORE loading the script
-    window.google = window.google || {};
-    window.google.visualization = window.google.visualization || {};
-    window.google.visualization.Query = {
-      setResponse: function(response) {
-        clearTimeout(timeoutId);
-        if (!response || response.status === 'error') {
-          const msg = (response && response.errors) ? response.errors.map(e => e.message).join(', ') : 'ไม่ทราบ';
-          reject(new Error('Google Sheets ปฏิเสธคำขอ: ' + msg + ' — ตรวจสอบ Public setting'));
-          return;
-        }
-        resolve(response.table);
-      }
-    };
-
-    const script = document.createElement('script');
-    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
-    script.onerror = () => {
+      delete window[cbName];
+      reject(new Error('JSONP timeout — ตรวจสอบว่า Google Sheet ตั้งค่า "Anyone with the link"'));
+    }, 12000);
+    window[cbName] = function(response) {
       clearTimeout(timeoutId);
-      reject(new Error('โหลด script ไม่สำเร็จ — ตรวจสอบ Public setting'));
+      delete window[cbName];
+      if (!response || response.status === 'error') {
+        reject(new Error('gviz error: ' + JSON.stringify(response && response.errors)));
+        return;
+      }
+      dbg('JSONP: ✓');
+      resolve(response.table);
     };
+    const script = document.createElement('script');
+    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;handler:${cbName}`;
+    script.onerror = () => { clearTimeout(timeoutId); delete window[cbName]; reject(new Error('JSONP script load error')); };
     document.head.appendChild(script);
   });
 }
@@ -440,13 +481,22 @@ function extractGvizCell(cell) {
   return cell.f !== null && cell.f !== undefined ? cell.f : String(v);
 }
 
-// ===== LOAD DATA FROM GOOGLE SHEETS CSV =====
+// ===== LOAD DATA =====
 async function loadData() {
+  // Reset UI
   document.getElementById('loadingOverlay').classList.remove('hidden');
+  document.getElementById('loadingSpinner').style.display = '';
+  document.getElementById('loadingText').style.display = '';
+  document.getElementById('debugLog').innerHTML = '';
+  document.getElementById('errorBox').classList.remove('show');
+  document.getElementById('errorBox').textContent = '';
+  document.getElementById('retryBtn').style.display = 'none';
+
   try {
-    // Try Cowork MCP first (when running inside Cowork app)
     let rows;
     if (window.cowork && window.cowork.callMcpTool) {
+      // ===== Cowork app: use MCP =====
+      dbg('Cowork MCP...');
       const r = await window.cowork.callMcpTool(
         'mcp__2ab58198-5cf1-41c3-ad51-21c43099d588__read_file_content',
         { fileId: SHEET_ID }
@@ -454,13 +504,19 @@ async function loadData() {
       if (r.isError) throw new Error('MCP error');
       const payload = r.structuredContent ?? JSON.parse(r.content[0].text);
       const md = payload.fileContent || '';
-      // Parse markdown table (MCP returns markdown)
       const lines = md.trim().split('\n').filter(l => l.trim());
       rows = lines.slice(2).map(line => line.split('|').slice(1,-1).map(c=>c.trim()));
+      dbg('MCP: ✓');
     } else {
-      // GitHub Pages / browser: JSONP via Google Visualization API (no CORS issues)
-      const table = await loadViaJSONP();
-      // gviz uses row 1 as column labels → table.rows[0]=row2, rows[1]=row3, rows[2]=first data row
+      // ===== GitHub Pages / browser: try proxy then JSONP =====
+      let table;
+      try {
+        table = await loadViaProxy();
+      } catch(e1) {
+        dbg('Proxy ล้มเหลวทั้งหมด ลอง JSONP...');
+        table = await loadViaJSONP();
+      }
+      // gviz row 0 = col headers, row 1 = sub-headers, rows 2+ = data
       rows = (table.rows || []).slice(2).map(row => {
         const cells = row.c || [];
         while (cells.length < 18) cells.push(null);
@@ -471,19 +527,15 @@ async function loadData() {
     DATA = buildData(rows).sort((a, b) => {
       const da = parseDate(a.r1 && a.r1.submit ? a.r1.submit : '');
       const db = parseDate(b.r1 && b.r1.submit ? b.r1.submit : '');
-      if (!da && !db) return 0;
-      if (!da) return 1;
-      if (!db) return -1;
+      if (!da && !db) return 0; if (!da) return 1; if (!db) return -1;
       return da - db;
     });
 
-    // Build position filter from data
     const positions = [...new Set(DATA.map(p => p.pos).filter(Boolean))].sort();
     const sel = document.getElementById('posF');
     sel.innerHTML = '<option value="">ทุกตำแหน่ง/ระดับ</option>' +
       positions.map(p => `<option value="${p}">${p}</option>`).join('');
 
-    // Update footer
     const now = new Date();
     document.getElementById('updateTime').innerHTML =
       `<span class="live-badge"><i class="ti ti-refresh" style="font-size:10px"></i> Live</span>` +
@@ -494,13 +546,20 @@ async function loadData() {
     document.getElementById('loadingOverlay').classList.add('hidden');
     render();
   } catch(e) {
+    document.getElementById('loadingSpinner').style.display = 'none';
+    document.getElementById('loadingText').textContent = 'โหลดข้อมูลไม่สำเร็จ';
     const eb = document.getElementById('errorBox');
-    eb.textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + (e.message || e);
+    eb.innerHTML = `<b>Error:</b> ${e.message || e}<br><br>` +
+      `<b>วิธีแก้:</b><br>` +
+      `1. เปิด Google Sheet<br>` +
+      `2. กด Share → เปลี่ยนเป็น <b>"Anyone with the link"</b> → Viewer<br>` +
+      `3. กด "Retry" ด้านล่าง`;
     eb.classList.add('show');
-    document.querySelector('.loading-text').style.display = 'none';
-    document.querySelector('.spinner').style.display = 'none';
+    document.getElementById('retryBtn').style.display = '';
   }
 }
+
+function retryLoad() { loadData(); }
 
 // ===== UTILS =====
 function parseDate(s){
@@ -761,35 +820,4 @@ function renderKPI(data){
     <div class="kpi-card c-amber clickable" onclick="toggleKpi('fix')"><div class="kpi-icon"><i class="ti ti-pencil"></i></div><div class="kpi-label">รอแก้ไข</div><div class="kpi-num">${fixAll.length}</div><div class="kpi-sub"><i class="ti ti-chevron-down"></i> คลิกดูรายละเอียด</div></div>`;
   document.getElementById('kx-pass-inner').innerHTML=`
     <div class="sub-card"><div class="sub-card-label"><i class="ti ti-circle-check"></i> ผ่านรอบที่ 1</div><div class="sub-card-num">${pR1.length} <span style="font-size:14px;color:var(--text3)">ราย</span></div></div>
-    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-refresh"></i> ผ่านรอบที่ 2</div><div class="sub-card-num teal">${pR2.length} <span style="font-size:14px;color:var(--text3)">ราย</span></div></div>`;
-  document.getElementById('kx-fix-inner').innerHTML=`
-    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-clock-2"></i> กำหนด 2 เดือน</div><div class="sub-card-num amber">${fix2.length} <span style="font-size:14px;color:var(--text3)">ราย</span></div></div>
-    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-clock-2"></i> กำหนด 6 เดือน</div><div class="sub-card-num amber">${fix6.length} <span style="font-size:14px;color:var(--text3)">ราย</span></div></div>`;
-}
-
-// ===== LISTS =====
-function renderLists(){
-  const data=filtered(),yrs=getYears(data);
-  let r1f=data.filter(p=>matchC1(p,chip1));
-  if(yearFilter1!=='all') r1f=r1f.filter(p=>getEligYear(p)==yearFilter1);
-  let r2f=data.filter(p=>p.r2).filter(p=>matchC2(p,chip2));
-  if(yearFilter2!=='all') r2f=r2f.filter(p=>getEligYear(p)==yearFilter2);
-  const thead=`<table class="list-table"><thead><tr>
-    <th><i class="ti ti-user" style="font-size:11px"></i> ชื่อ — ตำแหน่ง</th>
-    <th><i class="ti ti-flag" style="font-size:11px"></i> สถานะ</th>
-    <th><i class="ti ti-star" style="font-size:11px"></i> ประกาศประเมินบุคคล</th>
-    <th><i class="ti ti-file-check" style="font-size:11px"></i> วันที่ทำคำสั่ง</th>
-    <th><i class="ti ti-clock" style="font-size:11px"></i> วันที่ใช้</th>
-    <th></th>
-  </tr></thead><tbody>`;
-
-  document.getElementById('mainList').innerHTML=`
-    <div class="section-card">
-      <div class="section-head" onclick="toggleSection(1,event)">
-        <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <div class="section-title"><i class="ti ti-file-text" style="color:var(--blue)"></i> รอบที่ 1 <span class="badge b-blue">${r1f.length} ราย</span></div>
-            <div class="chip-bar" onclick="event.stopPropagation()">
-              <div class="chip ${chip1==='all'?'act':''}" data-r="1" data-s="all" onclick="setChip(this,'1')">ทั้งหมด</div>
-              <div class="chip ${chip1==='pass'?'act':''}" data-r="1" data-s="pass" onclick="setChip(this,'1')"><i class="ti ti-check"></i> ผ่าน</div>
-              <div class="chip ${chip1==='f
+    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-refresh"></i> ผ่านรอบที่ 2</div><div class="sub-card-num teal">${pR2.length} <span style="font-size:14px;color:var(--t
