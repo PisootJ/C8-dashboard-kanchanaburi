@@ -416,54 +416,16 @@ async function fetchT(url, ms) {
   }
 }
 
-// ===== METHOD 1: CORS PROXY → GVIZ JSON =====
-async function loadViaProxy() {
-  const gvizUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
-  const proxies = [
-    ['allorigins', `https://api.allorigins.win/raw?url=${encodeURIComponent(gvizUrl)}`],
-    ['corsproxy',  `https://corsproxy.io/?${encodeURIComponent(gvizUrl)}`],
-  ];
-  for (const [name, proxyUrl] of proxies) {
-    try {
-      dbg(`ลอง ${name}...`);
-      const r = await fetchT(proxyUrl, 12000);
-      if (!r.ok) { dbg(`${name}: HTTP ${r.status}`); continue; }
-      const text = await r.text();
-      if (text.trim().startsWith('<')) { dbg(`${name}: ได้ HTML (sheet อาจไม่ public)`); continue; }
-      const m = text.match(/setResponse\(([\s\S]+?)\);\s*$/);
-      if (!m) { dbg(`${name}: parse ล้มเหลว`); continue; }
-      const data = JSON.parse(m[1]);
-      if (data && data.table) { dbg(`${name}: ✓`); return data.table; }
-      dbg(`${name}: ไม่มี table`);
-    } catch(e) { dbg(`${name}: ${e.message}`); }
-  }
-  throw new Error('CORS proxy ทุกตัวล้มเหลว');
-}
-
-// ===== METHOD 2: JSONP FALLBACK =====
-function loadViaJSONP() {
-  return new Promise((resolve, reject) => {
-    dbg('ลอง JSONP...');
-    const cbName = '_gsCb' + Date.now();
-    const timeoutId = setTimeout(() => {
-      delete window[cbName];
-      reject(new Error('JSONP timeout — ตรวจสอบว่า Google Sheet ตั้งค่า "Anyone with the link"'));
-    }, 12000);
-    window[cbName] = function(response) {
-      clearTimeout(timeoutId);
-      delete window[cbName];
-      if (!response || response.status === 'error') {
-        reject(new Error('gviz error: ' + JSON.stringify(response && response.errors)));
-        return;
-      }
-      dbg('JSONP: ✓');
-      resolve(response.table);
-    };
-    const script = document.createElement('script');
-    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;handler:${cbName}`;
-    script.onerror = () => { clearTimeout(timeoutId); delete window[cbName]; reject(new Error('JSONP script load error')); };
-    document.head.appendChild(script);
-  });
+// ===== DIRECT CSV FETCH (confirmed: Google allows CORS for public sheets) =====
+async function loadDirectCSV() {
+  dbg('Direct CSV fetch จาก Google...');
+  const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
+  const r = await fetchT(csvUrl, 15000);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const text = await r.text();
+  if (text.trim().startsWith('<')) throw new Error('Sheet ไม่ public — ได้ HTML แทน CSV ตรวจสอบ sharing settings');
+  dbg('CSV: ✓ (' + text.split('\n').length + ' rows)');
+  return parseCSV(text);
 }
 
 // Extract cell value from gviz JSON (handles Date objects and text)
@@ -508,20 +470,10 @@ async function loadData() {
       rows = lines.slice(2).map(line => line.split('|').slice(1,-1).map(c=>c.trim()));
       dbg('MCP: ✓');
     } else {
-      // ===== GitHub Pages / browser: try proxy then JSONP =====
-      let table;
-      try {
-        table = await loadViaProxy();
-      } catch(e1) {
-        dbg('Proxy ล้มเหลวทั้งหมด ลอง JSONP...');
-        table = await loadViaJSONP();
-      }
-      // gviz row 0 = col headers, row 1 = sub-headers, rows 2+ = data
-      rows = (table.rows || []).slice(2).map(row => {
-        const cells = row.c || [];
-        while (cells.length < 18) cells.push(null);
-        return cells.map(cell => extractGvizCell(cell));
-      });
+      // ===== GitHub Pages / browser: Direct CSV (Google อนุญาต CORS สำหรับ public sheets) =====
+      const csvRows = await loadDirectCSV();
+      // Skip first 2 header rows
+      rows = csvRows.slice(2);
     }
 
     DATA = buildData(rows).sort((a, b) => {
@@ -820,4 +772,31 @@ function renderKPI(data){
     <div class="kpi-card c-amber clickable" onclick="toggleKpi('fix')"><div class="kpi-icon"><i class="ti ti-pencil"></i></div><div class="kpi-label">รอแก้ไข</div><div class="kpi-num">${fixAll.length}</div><div class="kpi-sub"><i class="ti ti-chevron-down"></i> คลิกดูรายละเอียด</div></div>`;
   document.getElementById('kx-pass-inner').innerHTML=`
     <div class="sub-card"><div class="sub-card-label"><i class="ti ti-circle-check"></i> ผ่านรอบที่ 1</div><div class="sub-card-num">${pR1.length} <span style="font-size:14px;color:var(--text3)">ราย</span></div></div>
-    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-refresh"></i> ผ่านรอบที่ 2</div><div class="sub-card-num teal">${pR2.length} <span style="font-size:14px;color:var(--t
+    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-refresh"></i> ผ่านรอบที่ 2</div><div class="sub-card-num teal">${pR2.length} <span style="font-size:14px;color:var(--text3)">ราย</span></div></div>`;
+  document.getElementById('kx-fix-inner').innerHTML=`
+    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-clock-2"></i> กำหนด 2 เดือน</div><div class="sub-card-num amber">${fix2.length} <span style="font-size:14px;color:var(--text3)">ราย</span></div></div>
+    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-clock-2"></i> กำหนด 6 เดือน</div><div class="sub-card-num amber">${fix6.length} <span style="font-size:14px;color:var(--text3)">ราย</span></div></div>`;
+}
+
+// ===== LISTS =====
+function renderLists(){
+  const data=filtered(),yrs=getYears(data);
+  let r1f=data.filter(p=>matchC1(p,chip1));
+  if(yearFilter1!=='all') r1f=r1f.filter(p=>getEligYear(p)==yearFilter1);
+  let r2f=data.filter(p=>p.r2).filter(p=>matchC2(p,chip2));
+  if(yearFilter2!=='all') r2f=r2f.filter(p=>getEligYear(p)==yearFilter2);
+  const thead=`<table class="list-table"><thead><tr>
+    <th><i class="ti ti-user" style="font-size:11px"></i> ชื่อ — ตำแหน่ง</th>
+    <th><i class="ti ti-flag" style="font-size:11px"></i> สถานะ</th>
+    <th><i class="ti ti-star" style="font-size:11px"></i> ประกาศประเมินบุคคล</th>
+    <th><i class="ti ti-file-check" style="font-size:11px"></i> วันที่ทำคำสั่ง</th>
+    <th><i class="ti ti-clock" style="font-size:11px"></i> วันที่ใช้</th>
+    <th></th>
+  </tr></thead><tbody>`;
+
+  document.getElementById('mainList').innerHTML=`
+    <div class="section-card">
+      <div class="section-head" onclick="toggleSection(1,event)">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div class="section-title"><i class="ti ti-file-text" style="col
