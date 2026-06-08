@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
 <style>
 :root{
-  color-scheme: light;
+  /* Cream/brown minimal palette */
   --bg:#F5F0E8;
   --surface:#FDFAF5;
   --surface2:#EDE8DE;
@@ -20,6 +20,7 @@
   --text:#2C2416;
   --text2:#7A6E5F;
   --text3:#A89F92;
+  /* Accent — muted earth tones */
   --blue-bg:#EAF0F8;--blue:#4270A0;--blue-dark:#2A4E78;--blue-mid:#6A94C4;
   --green-bg:#E8F2E4;--green:#4A7A32;--green-dark:#2E5A1E;
   --amber-bg:#F5EDD8;--amber:#8A6020;--amber-dark:#5E3E0A;--amber-mid:#C4943A;
@@ -35,16 +36,7 @@
 html{font-size:15px;-webkit-font-smoothing:antialiased}
 body{font-family:'IBM Plex Sans Thai',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
-/* LOADING */
-.loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
-.loading-overlay.hidden{display:none}
-.spinner{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--brown);border-radius:50%;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading-text{font-size:14px;color:var(--text2)}
-.error-box{background:var(--red-bg);border:1px solid var(--red);border-radius:var(--radius);padding:1rem 1.25rem;color:var(--red-dark);font-size:13px;max-width:400px;text-align:center;display:none}
-.error-box.show{display:block}
-
-/* HEADER */
+/* ===== HEADER ===== */
 .page-header{
   background:var(--surface);border-bottom:1px solid var(--border);
   padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;
@@ -72,7 +64,7 @@ select{
 select:hover{border-color:var(--brown)}
 select:focus{outline:none;border-color:var(--brown)}
 
-/* MODAL */
+/* ===== MODAL ===== */
 .modal-overlay{position:fixed;inset:0;background:rgba(44,36,22,.45);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)}
 .modal-overlay.open{display:flex}
 .modal-box{background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);max-width:600px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-md);animation:popIn .18s ease}
@@ -85,10 +77,10 @@ select:focus{outline:none;border-color:var(--brown)}
 .modal-close:hover{background:var(--red-bg);color:var(--red);border-color:var(--red)}
 .modal-body{padding:1.1rem 1.25rem;font-size:14px}
 
-/* MAIN */
+/* ===== MAIN ===== */
 .main{max-width:1140px;margin:0 auto;padding:1.75rem 2rem}
 
-/* KPI */
+/* ===== KPI ===== */
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem}
 .kpi-card{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
@@ -113,7 +105,7 @@ select:focus{outline:none;border-color:var(--brown)}
 .sub-card-num{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:500;color:var(--green)}
 .sub-card-num.amber{color:var(--amber)}.sub-card-num.teal{color:var(--teal)}
 
-/* FLOW CARD */
+/* ===== FLOW CARD (clickable) ===== */
 .flow-card{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
   margin-bottom:1.25rem;overflow:hidden;
@@ -134,23 +126,49 @@ select:focus{outline:none;border-color:var(--brown)}
 .flow-toggle-text h3{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-.2px}
 .flow-toggle-text p{font-size:12px;color:var(--text3);margin-top:2px}
 .flow-toggle-right{display:flex;align-items:center;gap:8px}
+.flow-chevron{font-size:18px;color:var(--text3);transition:transform .25s}
+.flow-chevron.open{transform:rotate(180deg)}
+.flow-body{display:none;padding:0 1.4rem 1.25rem;animation:fadeIn .2s ease}
+.flow-body.open{display:block}
+.flow-divider{height:1px;background:var(--border);margin-bottom:1.1rem}
+/* Main flow row */
+.flow-main{display:flex;align-items:center;gap:0;margin-bottom:1rem;flex-wrap:wrap;gap:2px}
+.fstep{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:10px 14px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;
+  border:1px solid;white-space:nowrap;min-width:96px;text-align:center;flex:1;
+}
+.fstep-num{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;opacity:.7}
+.fstep-icon{font-size:20px;margin:2px 0}
+.fstep-label{font-size:11px;font-weight:500}
+.flow-conn{display:flex;align-items:center;color:var(--text3);font-size:18px;padding:0 2px;flex-shrink:0}
+/* Branch */
+.flow-branch-wrap{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:.875rem 1rem;margin-top:.5rem;
+}
+.branch-head{display:flex;align-items:center;gap:8px;margin-bottom:.75rem;font-size:12px;font-weight:500;color:var(--text2)}
+.branch-pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:4px 10px;border-radius:20px;background:var(--amber-bg);color:var(--amber-dark);border:1px solid var(--border)}
+.flow-branch{display:flex;align-items:center;gap:2px;flex-wrap:wrap}
+.fstep-sm{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:6px 11px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;
+  border:1px solid;white-space:nowrap;
+}
+.flow-arr{color:var(--text3);font-size:16px;flex-shrink:0}
 
-/* SECTION */
+/* ===== SECTION ===== */
 .section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:1rem;overflow:hidden}
-.section-head{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem .875rem;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;user-select:none}
-.section-head:hover{background:var(--surface2)}
+.section-head{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem .875rem;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--border)}
 .section-title{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;letter-spacing:-.2px;color:var(--text)}
-.section-body{padding:.75rem 1.25rem 1rem;display:none;animation:fadeIn .2s ease}
-.section-body.open{display:block}
+.section-body{padding:.75rem 1.25rem 1rem}
 .chip-bar{display:flex;gap:5px;flex-wrap:wrap}
 .chip{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);transition:all .15s}
 .chip:hover{border-color:var(--brown);color:var(--brown)}
 .chip.act{background:var(--brown-bg);color:var(--brown);border-color:var(--border2)}
 .chip i{font-size:12px}
-.sec-chevron{font-size:18px;color:var(--text3);transition:transform .25s;flex-shrink:0}
-.sec-chevron.open{transform:rotate(180deg)}
 
-/* BADGE */
+/* ===== BADGE ===== */
 .badge{display:inline-flex;align-items:center;gap:3px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500}
 .b-blue{background:var(--blue-bg);color:var(--blue-dark)}
 .b-green{background:var(--green-bg);color:var(--green-dark)}
@@ -160,26 +178,26 @@ select:focus{outline:none;border-color:var(--brown)}
 .b-teal{background:var(--teal-bg);color:var(--teal-dark)}
 .b-brown{background:var(--brown-bg);color:var(--brown)}
 
-/* AVATAR */
+/* ===== AVATAR ===== */
 .av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
 .av-b{background:var(--blue-bg);color:var(--blue)}.av-g{background:var(--green-bg);color:var(--green)}
 .av-a{background:var(--amber-bg);color:var(--amber)}.av-r{background:var(--red-bg);color:var(--red)}
 .av-p{background:var(--purple-bg);color:var(--purple)}.av-t{background:var(--teal-bg);color:var(--teal)}
 
-/* DOT */
+/* ===== DOT ===== */
 .dot{width:7px;height:7px;border-radius:50%;animation:pulse 1.6s ease-in-out infinite;flex-shrink:0}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
 .d-b{background:var(--blue-mid)}.d-g{background:#5A9A40}.d-a{background:var(--amber-mid)}
 .d-r{background:#C44848}.d-p{background:#8878CC}.d-t{background:#3A9A7A}
 
-/* YEAR PILLS */
+/* ===== YEAR PILLS ===== */
 .list-filters{display:flex;align-items:center;gap:8px;margin-bottom:.875rem;flex-wrap:wrap;padding:.625rem .75rem;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border)}
 .list-filter-label{font-size:11px;color:var(--text3);white-space:nowrap;font-weight:500;text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:4px}
 .ypill{display:inline-flex;align-items:center;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text2);transition:all .15s;font-family:'IBM Plex Mono',monospace}
 .ypill:hover{border-color:var(--brown);color:var(--brown)}
 .ypill.act{background:var(--brown-bg);color:var(--brown);border-color:var(--border2)}
 
-/* TABLE */
+/* ===== TABLE ===== */
 .list-table{width:100%;border-collapse:collapse}
 .list-table th{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);padding:8px 12px;border-bottom:1px solid var(--border);text-align:left;background:var(--surface2)}
 .list-table td{padding:11px 12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
@@ -193,8 +211,9 @@ select:focus{outline:none;border-color:var(--brown)}
 .telig{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--teal)}
 .telig.na{color:var(--text3);font-weight:400}
 .td-center{text-align:center}
+.tr-hint{font-size:10px;color:var(--text3);display:flex;align-items:center;gap:3px}
 
-/* MODAL DETAIL */
+/* ===== MODAL DETAIL ===== */
 .det-sec{background:var(--surface2);border-radius:var(--radius-sm);padding:.875rem;margin-bottom:8px;border:1px solid var(--border)}
 .det-sec:last-child{margin-bottom:0}
 .det-sec-head{font-size:12px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);margin-bottom:.875rem;padding-bottom:.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -215,9 +234,16 @@ select:focus{outline:none;border-color:var(--brown)}
 .elig-label{font-size:12px;color:var(--teal-dark);font-weight:500;text-transform:uppercase;letter-spacing:.04em}
 .elig-date{font-size:22px;font-weight:600;color:var(--teal-dark)}
 .elig-sub{font-size:13px;color:var(--teal);margin-top:3px}
+
 .nodata{text-align:center;padding:2.5rem;color:var(--text3);font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px}
-.update-time{font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace;padding:.75rem 2rem;border-top:1px solid var(--border);margin-top:1rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.live-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;background:var(--green-bg);color:var(--green-dark);font-size:10px;font-weight:500;font-family:'IBM Plex Sans Thai',sans-serif}
+.update-time{font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace;padding:.75rem 2rem;border-top:1px solid var(--border);margin-top:1rem}
+/* section collapse */
+.section-head{cursor:pointer;transition:background .15s;user-select:none}
+.section-head:hover{background:var(--surface2)}
+.section-body{display:none;animation:fadeIn .2s ease}
+.section-body.open{display:block}
+.sec-chevron{font-size:18px;color:var(--text3);transition:transform .25s;flex-shrink:0}
+.sec-chevron.open{transform:rotate(180deg)}
 
 @media(max-width:768px){
   .page-header{padding:1rem}.main{padding:1rem}
@@ -232,15 +258,6 @@ select:focus{outline:none;border-color:var(--brown)}
 </head>
 <body>
 
-<!-- Loading Overlay -->
-<div class="loading-overlay" id="loadingOverlay">
-  <div class="spinner" id="loadingSpinner"></div>
-  <div class="loading-text" id="loadingText">กำลังโหลดข้อมูลจาก Google Sheet...</div>
-  <div id="debugLog" style="font-size:11px;color:var(--text2);margin-top:4px;text-align:left;max-width:380px;line-height:1.7"></div>
-  <div class="error-box" id="errorBox"></div>
-  <button id="retryBtn" onclick="retryLoad()" style="display:none;margin-top:8px;padding:7px 18px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-family:inherit;font-size:13px">🔄 ลองอีกครั้ง</button>
-</div>
-
 <header class="page-header">
   <div class="logo">
     <div class="logo-badge">C8</div>
@@ -253,6 +270,12 @@ select:focus{outline:none;border-color:var(--brown)}
     <div class="sw">
       <select id="posF" onchange="render()">
         <option value="">ทุกตำแหน่ง/ระดับ</option>
+        <option value="นักวิชาการสาธารณสุขชำนาญการ">นักวิชาการสาธารณสุข ชก.</option>
+        <option value="นักสาธารณสุขชำนาญการ">นักสาธารณสุข ชก.</option>
+        <option value="พยาบาลชำนาญการพิเศษ">พยาบาล ชพ.</option>
+        <option value="พยาบาลวิชาชีพชำนาญการ">พยาบาลวิชาชีพ ชก.</option>
+        <option value="นายแพทย์ชำนาญการ">นายแพทย์ ชก.</option>
+        <option value="ทันตแพทย์ชำนาญการ">ทันตแพทย์ ชก.</option>
       </select>
       <i class="ti ti-chevron-down arrow"></i>
     </div>
@@ -285,6 +308,7 @@ select:focus{outline:none;border-color:var(--brown)}
 </div>
 
 <main class="main">
+
   <div class="kpi-row" id="kpiRow"></div>
   <div class="kpi-expand" id="kx-pass">
     <div class="expand-title"><i class="ti ti-award"></i> ผ่านการประเมิน — รายละเอียด</div>
@@ -295,6 +319,7 @@ select:focus{outline:none;border-color:var(--brown)}
     <div class="sub-grid" id="kx-fix-inner"></div>
   </div>
 
+  <!-- Flow Card (clickable) -->
   <div class="flow-card">
     <div class="flow-toggle" onclick="openFlowModal()">
       <div class="flow-toggle-left">
@@ -316,540 +341,116 @@ select:focus{outline:none;border-color:var(--brown)}
 <div class="update-time" id="updateTime"></div>
 
 <script>
-// ===== FILE ID =====
-const SHEET_ID = '1hbXCaO8spDuEJ8Yqji4YcWUmuKkYEHX4QmWgewGZ3zg';
 
-let DATA = [];
+// ========= LOADING OVERLAY CSS =========
+const _style = document.createElement('style');
+_style.textContent = '.ld-ov{position:fixed;inset:0;background:#F5F0E8;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-family:inherit} .ld-sp{width:36px;height:36px;border:3px solid #C8BCAA;border-top-color:#7A6048;border-radius:50%;animation:ld-spin .8s linear infinite} @keyframes ld-spin{to{transform:rotate(360deg)}} .ld-txt{font-size:13px;color:#7A6E5F} .ld-dbg{font-size:11px;color:#7A6E5F;max-width:360px;text-align:left} .ld-err{background:#F5E8E8;border:1px solid #9A3030;border-radius:8px;padding:12px 16px;color:#6A1E1E;font-size:13px;max-width:380px;text-align:center;display:none} .ld-btn{display:none;padding:7px 18px;border-radius:8px;border:1px solid #C8BCAA;background:#EDE8DE;cursor:pointer;font-family:inherit;font-size:13px}';
+document.head.appendChild(_style);
 
-// ===== CSV PARSER (handles quoted fields) =====
-function parseCSV(text) {
-  const rows = [];
-  let row = [], field = '', inQ = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i], n = text[i+1];
-    if (inQ) {
-      if (c === '"' && n === '"') { field += '"'; i++; }
-      else if (c === '"') inQ = false;
-      else field += c;
-    } else {
-      if (c === '"') { inQ = true; }
-      else if (c === ',') { row.push(field.trim()); field = ''; }
-      else if (c === '\r' && n === '\n') { row.push(field.trim()); rows.push(row); row = []; field = ''; i++; }
-      else if (c === '\n' || c === '\r') { row.push(field.trim()); rows.push(row); row = []; field = ''; }
-      else field += c;
-    }
+// ========= LOADING OVERLAY HTML =========
+const _ov = document.createElement('div');
+_ov.className = 'ld-ov';
+_ov.id = 'ldOv';
+_ov.innerHTML = '<div class="ld-sp"></div><div class="ld-txt" id="ldTxt">กำลังโหลดข้อมูลจาก Google Sheet...</div><div class="ld-dbg" id="ldDbg"></div><div class="ld-err" id="ldErr"></div><button class="ld-btn" id="ldBtn" onclick="loadData()">🔄 ลองอีกครั้ง</button>';
+document.body.appendChild(_ov);
+
+function dbg(m){ const el=document.getElementById('ldDbg'); if(el) el.innerHTML += '<div>→ '+m+'</div>'; console.log('[C8]',m); }
+
+// ========= CSV PARSER =========
+function parseCSV(text){
+  const rows=[]; let row=[],field='',inQ=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i],n=text[i+1];
+    if(inQ){ if(c==='"'&&n==='"'){field+='"';i++;} else if(c==='"')inQ=false; else field+=c; }
+    else{ if(c==='"'){inQ=true;} else if(c===','){row.push(field.trim());field='';} else if(c==='\r'&&n==='\n'){row.push(field.trim());rows.push(row);row=[];field='';i++;} else if(c==='\n'||c==='\r'){row.push(field.trim());rows.push(row);row=[];field='';} else field+=c; }
   }
-  if (field || row.length) { row.push(field.trim()); rows.push(row); }
+  if(field||row.length){row.push(field.trim());rows.push(row);}
   return rows;
 }
 
-// Convert Gregorian year → Buddhist 2-digit year
-// 2-digit: 26 → 69 (AD 2026 = BE 2569, last 2 digits: +43)
-// 4-digit: 2026 → 69 (subtract 2000 then +43)
-function convertDateToBE(dateStr) {
-  if (!dateStr || !dateStr.trim()) return '';
-  const parts = dateStr.split('/');
-  if (parts.length !== 3) return dateStr;
-  let yr = parseInt(parts[2]);
-  if (isNaN(yr)) return dateStr;
-  if (yr >= 2000) yr = yr - 2000 + 43; // 4-digit Gregorian
-  else if (yr < 100) yr = yr + 43;      // 2-digit Gregorian
-  return `${parts[0]}/${parts[1]}/${yr}`;
+// ========= DATE CONVERSION =========
+function cvtBE(d){
+  if(!d||!d.trim())return'';
+  const p=d.split('/'); if(p.length!==3)return d;
+  let y=parseInt(p[2]); if(isNaN(y))return d;
+  if(y>=2000)y=y-2000+43; else if(y<100)y=y+43;
+  return p[0]+'/'+p[1]+'/'+y;
 }
 
-function buildData(rows) {
-  return rows
-    .filter(col => col.length >= 3 && col[1] && col[1].trim())
-    .map((col, idx) => {
-      const get = i => (col[i] || '').trim();
-      const r2Submit = get(12);
-      const r2Check  = get(13);
-      const r2Sent   = get(14);
-      const r2Result = get(15);
-      const r2ResDate= get(16);
-      const r2Order  = get(17);
-      const hasR2 = r2Submit || r2Check || r2Sent || r2Result || r2ResDate || r2Order;
-      return {
-        id: idx + 1,
-        name: get(1),
-        pos: get(2),
-        eligibleDate: convertDateToBE(get(3)),
-        r1: {
-          submit:     convertDateToBE(get(4)),
-          check:      get(5),
-          sent:       convertDateToBE(get(6)),
-          result:     get(7),
-          resultDate: convertDateToBE(get(8)),
-          deadline:   convertDateToBE(get(9)),
-          order:      convertDateToBE(get(10))
-        },
-        r2: hasR2 ? {
-          submit:     convertDateToBE(r2Submit),
-          check:      r2Check,
-          sent:       convertDateToBE(r2Sent),
-          result:     r2Result,
-          resultDate: convertDateToBE(r2ResDate),
-          order:      convertDateToBE(r2Order)
-        } : null
-      };
+// ========= BUILD DATA FROM CSV ROWS =========
+function buildDataFromCSV(rows){
+  return rows.filter(c=>c.length>=3&&c[1]&&c[1].trim()).map((c,i)=>{
+    const g=j=>(c[j]||'').trim();
+    const r2s=g(12),r2c=g(13),r2se=g(14),r2r=g(15),r2rd=g(16),r2o=g(17);
+    const hr2=r2s||r2c||r2se||r2r||r2rd||r2o;
+    return {id:i+1,name:g(1),pos:g(2),eligibleDate:cvtBE(g(3)),
+      r1:{submit:cvtBE(g(4)),check:g(5),sent:cvtBE(g(6)),result:g(7),resultDate:cvtBE(g(8)),deadline:cvtBE(g(9)),order:cvtBE(g(10))},
+      r2:hr2?{submit:cvtBE(r2s),check:r2c,sent:cvtBE(r2se),result:r2r,resultDate:cvtBE(r2rd),order:cvtBE(r2o)}:null,
+      note:g(11)};
+  });
+}
+
+// ========= LOAD FROM GOOGLE SHEETS =========
+let DATA=[];
+async function loadData(){
+  const ov=document.getElementById('ldOv');
+  const err=document.getElementById('ldErr');
+  const btn=document.getElementById('ldBtn');
+  const dbgEl=document.getElementById('ldDbg');
+  if(ov)ov.style.display='flex';
+  if(err)err.style.display='none';
+  if(btn)btn.style.display='none';
+  if(dbgEl)dbgEl.innerHTML='';
+
+  try{
+    dbg('เริ่มโหลด CSV จาก Google Sheets...');
+    const url='https://docs.google.com/spreadsheets/d/1hbXCaO8spDuEJ8Yqji4YcWUmuKkYEHX4QmWgewGZ3zg/export?format=csv&gid=0';
+    const c=new AbortController();
+    const t=setTimeout(()=>c.abort(),15000);
+    const r=await fetch(url,{signal:c.signal});
+    clearTimeout(t);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const text=await r.text();
+    if(text.trim().startsWith('<')) throw new Error('Sheet ไม่ public (ได้ HTML) — กด Share → Anyone with the link → Viewer');
+    dbg('CSV โหลดสำเร็จ: '+text.split('\n').length+' แถว');
+    const allRows=parseCSV(text);
+    const dataRows=allRows.slice(2); // skip 2 header rows
+    DATA=buildDataFromCSV(dataRows).sort((a,b)=>{
+      const pa=a.r1&&a.r1.submit?a.r1.submit:''; const pb=b.r1&&b.r1.submit?b.r1.submit:'';
+      const da=parseDate(pa),db=parseDate(pb);
+      if(!da&&!db)return 0; if(!da)return 1; if(!db)return -1;
+      return da-db;
     });
-}
+    dbg('สร้าง DATA: '+DATA.length+' รายการ ✓');
 
-// ===== DEBUG LOG (visible on screen) =====
-function dbg(msg) {
-  const el = document.getElementById('debugLog');
-  if (el) el.innerHTML += `<div>→ ${msg}</div>`;
-  console.log('[C8]', msg);
-}
-
-// ===== FETCH WITH TIMEOUT =====
-async function fetchT(url, ms) {
-  const c = new AbortController();
-  const id = setTimeout(() => c.abort(), ms);
-  try {
-    const r = await fetch(url, {signal: c.signal});
-    clearTimeout(id);
-    return r;
-  } catch(e) {
-    clearTimeout(id);
-    throw e;
-  }
-}
-
-// ===== DIRECT CSV FETCH (confirmed: Google allows CORS for public sheets) =====
-async function loadDirectCSV() {
-  dbg('Direct CSV fetch จาก Google...');
-  const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
-  const r = await fetchT(csvUrl, 15000);
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const text = await r.text();
-  if (text.trim().startsWith('<')) throw new Error('Sheet ไม่ public — ได้ HTML แทน CSV ตรวจสอบ sharing settings');
-  dbg('CSV: ✓ (' + text.split('\n').length + ' rows)');
-  return parseCSV(text);
-}
-
-// Extract cell value from gviz JSON (handles Date objects and text)
-function extractGvizCell(cell) {
-  if (!cell || cell.v === null || cell.v === undefined) return '';
-  const v = cell.v;
-  // Date value: "Date(2026,2,19)" — month is 0-indexed
-  if (typeof v === 'string' && v.startsWith('Date(')) {
-    const m = v.match(/Date\((\d+),(\d+),(\d+)\)/);
-    if (m) return `${parseInt(m[2])+1}/${parseInt(m[3])}/${parseInt(m[1])}`;
-    return cell.f || '';
-  }
-  // Number used as date (Excel serial) — use formatted
-  if (typeof v === 'number' && cell.f) return cell.f;
-  return cell.f !== null && cell.f !== undefined ? cell.f : String(v);
-}
-
-// ===== LOAD DATA =====
-async function loadData() {
-  // Reset UI
-  document.getElementById('loadingOverlay').classList.remove('hidden');
-  document.getElementById('loadingSpinner').style.display = '';
-  document.getElementById('loadingText').style.display = '';
-  document.getElementById('debugLog').innerHTML = '';
-  document.getElementById('errorBox').classList.remove('show');
-  document.getElementById('errorBox').textContent = '';
-  document.getElementById('retryBtn').style.display = 'none';
-
-  try {
-    let rows;
-    if (window.cowork && window.cowork.callMcpTool) {
-      // ===== Cowork app: use MCP =====
-      dbg('Cowork MCP...');
-      const r = await window.cowork.callMcpTool(
-        'mcp__2ab58198-5cf1-41c3-ad51-21c43099d588__read_file_content',
-        { fileId: SHEET_ID }
-      );
-      if (r.isError) throw new Error('MCP error');
-      const payload = r.structuredContent ?? JSON.parse(r.content[0].text);
-      const md = payload.fileContent || '';
-      const lines = md.trim().split('\n').filter(l => l.trim());
-      rows = lines.slice(2).map(line => line.split('|').slice(1,-1).map(c=>c.trim()));
-      dbg('MCP: ✓');
-    } else {
-      // ===== GitHub Pages / browser: Direct CSV (Google อนุญาต CORS สำหรับ public sheets) =====
-      const csvRows = await loadDirectCSV();
-      // Skip first 2 header rows
-      rows = csvRows.slice(2);
+    // Update position filter
+    const pos=[...new Set(DATA.map(p=>p.pos).filter(Boolean))].sort();
+    const sel=document.getElementById('posF');
+    if(sel){
+      sel.innerHTML='<option value="">ทุกตำแหน่ง/ระดับ</option>'+pos.map(p=>'<option value="'+p+'">'+p+'</option>').join('');
     }
 
-    DATA = buildData(rows).sort((a, b) => {
-      const da = parseDate(a.r1 && a.r1.submit ? a.r1.submit : '');
-      const db = parseDate(b.r1 && b.r1.submit ? b.r1.submit : '');
-      if (!da && !db) return 0; if (!da) return 1; if (!db) return -1;
-      return da - db;
-    });
+    // Update time
+    const now=new Date();
+    const el=document.getElementById('updateTime');
+    if(el) el.textContent='อัปเดตล่าสุด: '+now.getDate()+'/'+(now.getMonth()+1)+'/'+(now.getFullYear()+543)+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+' น. · '+DATA.length+' รายการ';
 
-    const positions = [...new Set(DATA.map(p => p.pos).filter(Boolean))].sort();
-    const sel = document.getElementById('posF');
-    sel.innerHTML = '<option value="">ทุกตำแหน่ง/ระดับ</option>' +
-      positions.map(p => `<option value="${p}">${p}</option>`).join('');
-
-    const now = new Date();
-    document.getElementById('updateTime').innerHTML =
-      `<span class="live-badge"><i class="ti ti-refresh" style="font-size:10px"></i> Live</span>` +
-      `อัปเดตล่าสุด: ${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()+543}` +
-      ` เวลา ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} น.` +
-      ` &nbsp;|&nbsp; <i class="ti ti-table" style="font-size:11px"></i> Google Sheet · ${DATA.length} รายการ`;
-
-    document.getElementById('loadingOverlay').classList.add('hidden');
+    if(ov) ov.style.display='none';
     render();
-  } catch(e) {
-    document.getElementById('loadingSpinner').style.display = 'none';
-    document.getElementById('loadingText').textContent = 'โหลดข้อมูลไม่สำเร็จ';
-    const eb = document.getElementById('errorBox');
-    eb.innerHTML = `<b>Error:</b> ${e.message || e}<br><br>` +
-      `<b>วิธีแก้:</b><br>` +
-      `1. เปิด Google Sheet<br>` +
-      `2. กด Share → เปลี่ยนเป็น <b>"Anyone with the link"</b> → Viewer<br>` +
-      `3. กด "Retry" ด้านล่าง`;
-    eb.classList.add('show');
-    document.getElementById('retryBtn').style.display = '';
+  } catch(e){
+    console.error(e);
+    if(err){ err.textContent='โหลดไม่สำเร็จ: '+e.message; err.style.display='block'; }
+    if(btn) btn.style.display='block';
+    document.getElementById('ldTxt').textContent='โหลดข้อมูลไม่สำเร็จ';
   }
-}
-
-function retryLoad() { loadData(); }
-
-// ===== UTILS =====
-function parseDate(s){
-  if(!s) return null;
-  const p=s.split('/');
-  if(p.length<3) return null;
-  let y=parseInt(p[2]);
-  if(y<100) y+=2500;
-  return new Date(y-543,parseInt(p[0])-1,parseInt(p[1]));
-}
-function diffDays(a,b){if(!a||!b)return null;return Math.round(Math.abs(b-a)/86400000);}
-function fmt(s){return s||'—'}
-function ini(n){return n.replace(/^(นาย|นาง|นางสาว)/,'').trim().charAt(0);}
-function getEligYear(p){const d=parseDate(p.eligibleDate);return d?d.getFullYear()+543:null;}
-function getDaysFromEligToOrder(p){
-  const elig=parseDate(p.eligibleDate);if(!elig)return null;
-  const ord=p.r2&&p.r2.order?parseDate(p.r2.order):p.r1&&p.r1.order?parseDate(p.r1.order):null;
-  return ord?diffDays(elig,ord):null;
-}
-
-// ===== STATUS =====
-function isPassR1(p){return p.r1&&p.r1.result&&p.r1.result.includes('ผ่านการประเมิน')&&!p.r1.result.includes('ไม่ผ่าน');}
-function isPassR2(p){return p.r2&&p.r2.result&&p.r2.result.includes('ผ่านการประเมิน')&&!p.r2.result.includes('ไม่ผ่าน');}
-function isPass(p){return isPassR1(p)||isPassR2(p);}
-function isFailR1(p){return p.r1&&p.r1.result&&p.r1.result.includes('ไม่ผ่านการประเมิน');}
-function isFailR2(p){return p.r2&&p.r2.result&&p.r2.result.includes('ไม่ผ่านการประเมิน');}
-function isFail(p){return isFailR1(p)||isFailR2(p);}
-function isFixType(p){return p.r1&&p.r1.result&&p.r1.result.includes('ปรับปรุงแก้ไข');}
-function isPendingR2(p){return p.r2&&p.r2.pending===true;}
-function hasSentR2(p){return p.r2&&!p.r2.pending&&p.r2.submit;}
-function getStatus(p){
-  if(isPass(p)) return 'pass';
-  if(isFail(p)&&!isFixType(p)) return 'fail';
-  if(isFixType(p)) return 'fix';
-  return 'inprog';
-}
-function overallLabel(p){
-  const s=getStatus(p);
-  if(s==='pass') return isPassR2(p)?{t:'ผ่าน (รอบ 2)',b:'b-green',d:'d-g',av:'av-g'}:{t:'ผ่าน (รอบ 1)',b:'b-green',d:'d-g',av:'av-g'};
-  if(s==='fail') return {t:'ไม่ผ่านการประเมิน',b:'b-red',d:'d-r',av:'av-r'};
-  if(s==='fix'){
-    const is6=p.r1.result.includes('เป็นสาระสำคัญ')&&!p.r1.result.includes('ไม่เป็น');
-    if(!hasSentR2(p)||isPendingR2(p)) return {t:is6?'กำลังแก้ไข (6 เดือน)':'กำลังแก้ไข (2 เดือน)',b:'b-amber',d:'d-a',av:'av-a'};
-    return {t:is6?'ส่งรอบ 2 (6 เดือน)':'ส่งรอบ 2 (2 เดือน)',b:'b-purple',d:'d-p',av:'av-p'};
-  }
-  return {t:'ระหว่างดำเนินงาน',b:'b-blue',d:'d-b',av:'av-b'};
-}
-function getR1Lbl(r){
-  if(!r) return '—';
-  if(r.order) return 'ทำคำสั่งแล้ว';
-  if(r.result&&r.result.includes('ผ่านการประเมิน')&&!r.result.includes('ไม่ผ่าน')) return 'ผ่านการประเมิน';
-  if(r.result&&r.result.includes('ไม่ผ่าน')) return 'ไม่ผ่าน';
-  if(r.result&&r.result.includes('ปรับปรุงแก้ไข')) return r.result.includes('เป็นสาระสำคัญ')&&!r.result.includes('ไม่เป็น')?'ปรับปรุงแก้ไข (6 เดือน)':'ปรับปรุงแก้ไข (2 เดือน)';
-  if(r.result&&r.result.includes('ระหว่าง')) return 'ระหว่างประเมิน';
-  if(r.sent) return 'ส่งหน่วยประเมินแล้ว';
-  return r.check||'ตรวจสอบเอกสาร';
-}
-function getR2Lbl(p){
-  if(!p.r2) return '—';
-  const r=p.r2;
-  if(isPendingR2(p)) return 'กำลังดำเนินการแก้ไข';
-  if(r.order) return 'ทำคำสั่งแล้ว';
-  if(r.result&&r.result.includes('ผ่านการประเมิน')&&!r.result.includes('ไม่ผ่าน')) return 'ผ่านการประเมิน';
-  if(r.result&&r.result.includes('ไม่ผ่าน')) return 'ไม่ผ่าน';
-  if(r.result&&r.result.includes('ระหว่าง')) return 'ระหว่างประเมิน';
-  if(r.sent) return 'ส่งหน่วยประเมินแล้ว';
-  if(r.check) return r.check;
-  return 'รอส่งเอกสาร';
-}
-function badgeCls(lbl){
-  if(lbl.includes('ผ่านการประเมิน')) return 'b-green';
-  if(lbl.includes('ไม่ผ่าน')) return 'b-red';
-  if(lbl.includes('ปรับปรุง')||lbl.includes('แก้ไข')||lbl.includes('กำลัง')) return 'b-amber';
-  if(lbl.includes('คำสั่ง')) return 'b-teal';
-  return 'b-blue';
-}
-
-// ===== FLOW MODAL =====
-function openFlowModal(){
-  const steps=[
-    {num:'①',icon:'ti-speakerphone',label:'ประกาศประเมินบุคคล',bg:'var(--teal-bg)',color:'var(--teal-dark)',desc:'ประกาศรายชื่อบุคคลที่ได้รับการคัดเลือกเข้ารับการประเมินเพื่อแต่งตั้งให้ดำรงตำแหน่ง'},
-    {num:'②',icon:'ti-send',label:'ส่งผลงาน',bg:'var(--blue-bg)',color:'var(--blue-dark)',desc:'ผู้สมัครส่งเอกสารผลงานเพื่อรับการประเมิน'},
-    {num:'③',icon:'ti-search',label:'สสจ. ตรวจสอบ',bg:'var(--amber-bg)',color:'var(--amber-dark)',desc:'สำนักงานสาธารณสุขจังหวัดตรวจสอบความถูกต้องของเอกสาร'},
-    {num:'④',icon:'ti-building',label:'ส่งหน่วยประเมิน',bg:'var(--purple-bg)',color:'var(--purple-dark)',desc:'ส่งเอกสารไปยังคณะกรรมการหน่วยประเมินวิชาการ'},
-    {num:'⑤',icon:'ti-checkbox',label:'ผลการพิจารณา',bg:'var(--teal-bg)',color:'var(--teal-dark)',desc:'คณะกรรมการพิจารณาและมีผลการประเมิน'},
-    {num:'⑥',icon:'ti-bell',label:'แจ้งผลกลับ',bg:'var(--green-bg)',color:'var(--green-dark)',desc:'แจ้งผลกลับมายัง สสจ. และผู้สมัคร'},
-    {num:'⑦',icon:'ti-file-check',label:'ทำคำสั่ง',bg:'var(--surface2)',color:'var(--brown)',desc:'ดำเนินการออกคำสั่งแต่งตั้งตำแหน่ง'},
-  ];
-  const stepsHTML=steps.map(s=>`
-    <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="width:44px;height:44px;border-radius:var(--radius-sm);background:${s.bg};border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <i class="ti ${s.icon}" style="font-size:20px;color:${s.color}"></i>
-      </div>
-      <div style="flex:1">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-          <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text3)">${s.num}</span>
-          <span style="font-size:14px;font-weight:600;color:var(--text)">${s.label}</span>
-        </div>
-        <div style="font-size:12px;color:var(--text2)">${s.desc}</div>
-      </div>
-    </div>`).join('');
-  const branchHTML=`
-    <div style="margin-top:1rem;background:var(--amber-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.875rem 1rem">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:.75rem;font-size:12px;font-weight:600;color:var(--amber-dark)">
-        <i class="ti ti-refresh" style="font-size:16px"></i> กรณีปรับปรุงแก้ไข
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;font-weight:500;color:var(--amber-dark)">
-        <span style="padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);display:inline-flex;align-items:center;gap:4px"><i class="ti ti-pencil" style="font-size:13px"></i> แก้ไข &amp; ส่งรอบที่ 2</span>
-        <i class="ti ti-chevron-right" style="font-size:16px;color:var(--text3)"></i>
-        <span style="padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);display:inline-flex;align-items:center;gap:4px"><i class="ti ti-building" style="font-size:13px"></i> ③ ส่งหน่วยประเมิน</span>
-        <i class="ti ti-chevron-right" style="font-size:16px;color:var(--text3)"></i>
-        <span style="padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);display:inline-flex;align-items:center;gap:4px"><i class="ti ti-checkbox" style="font-size:13px"></i> ④ ผลการพิจารณา</span>
-        <i class="ti ti-chevron-right" style="font-size:16px;color:var(--text3)"></i>
-        <span style="padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);display:inline-flex;align-items:center;gap:4px"><i class="ti ti-file-check" style="font-size:13px"></i> ⑥ ทำคำสั่ง</span>
-      </div>
-      <div style="margin-top:.625rem;font-size:11px;color:var(--amber-dark)">
-        <i class="ti ti-info-circle" style="font-size:12px"></i>
-        ปรับปรุงแก้ไขไม่เป็นสาระสำคัญ: กำหนด <strong>2 เดือน</strong> · ปรับปรุงแก้ไขเป็นสาระสำคัญ: กำหนด <strong>6 เดือน</strong>
-      </div>
-    </div>`;
-  document.getElementById('flowModalBody').innerHTML=`<div>${stepsHTML}</div>${branchHTML}`;
-  document.getElementById('flowModalOverlay').classList.add('open');
-  document.body.style.overflow='hidden';
-}
-function closeFlowModal(){document.getElementById('flowModalOverlay').classList.remove('open');document.body.style.overflow='';}
-function closeFlowModalOutside(e){if(e.target===document.getElementById('flowModalOverlay'))closeFlowModal();}
-
-// ===== PERSON MODAL =====
-function openModal(pid){
-  const p=DATA.find(x=>x.id===pid);if(!p)return;
-  const ol=overallLabel(p);
-  document.getElementById('modalTitle').innerHTML=`<span class="av ${ol.av}" style="width:28px;height:28px;font-size:12px">${ini(p.name)}</span>${p.name}`;
-  document.getElementById('modalBody').innerHTML=buildModalBody(p);
-  document.getElementById('modalOverlay').classList.add('open');
-  document.body.style.overflow='hidden';
-}
-function closeModal(){document.getElementById('modalOverlay').classList.remove('open');document.body.style.overflow='';}
-function closeModalOutside(e){if(e.target===document.getElementById('modalOverlay'))closeModal();}
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeFlowModal();}});
-
-function eligBoxHTML(p){
-  if(!p.eligibleDate) return '';
-  const dEO=getDaysFromEligToOrder(p);
-  const sub=dEO!==null?`ใช้เวลา ${dEO} วัน จนถึงวันที่ทำคำสั่ง`:'ยังไม่มีคำสั่ง';
-  return `<div class="elig-box"><div class="elig-icon"><i class="ti ti-calendar-event"></i></div>
-    <div><div class="elig-label"><i class="ti ti-star" style="font-size:11px"></i> วันที่ประกาศประเมินบุคคล</div>
-    <div class="elig-date">${fmt(p.eligibleDate)}</div><div class="elig-sub">${sub}</div></div></div>`;
-}
-function roundSectionHTML(r,rnum,p){
-  if(!r) return '';
-  const isPend=rnum===2&&p&&isPendingR2(p);
-  const lbl=rnum===1?getR1Lbl(r):getR2Lbl(p);
-  const bc=badgeCls(lbl);
-  const dLine=r.deadline?`<div class="dr"><span class="dl"><i class="ti ti-calendar-due"></i> กำหนดส่งแก้ไข</span><span class="dv" style="color:var(--amber)">${fmt(r.deadline)}</span></div>`:'';
-  const elig=parseDate(p.eligibleDate);
-  const se=parseDate(r.sent);
-  const rd=parseDate(r.resultDate);
-  const od=parseDate(r.order);
-  const eligToSent=(elig&&se)?diffDays(elig,se):null;
-  const sentToResult=(se&&rd)?diffDays(se,rd):null;
-  const resultToOrder=(rd&&od)?diffDays(rd,od):null;
-  const eligToOrd=(elig&&od)?diffDays(elig,od):null;
-  const box1=eligToSent!==null?`<div class="day-box"><div class="day-num">${eligToSent}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">ประกาศประเมิน<br>→ ส่งหน่วยประเมิน</div></div>`:'';
-  const box2=sentToResult!==null?`<div class="day-box"><div class="day-num">${sentToResult}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">จำนวนวันที่หน่วยประเมิน<br>อ่านผลงาน</div></div>`:'';
-  const box3=resultToOrder!==null?`<div class="day-box"><div class="day-num">${resultToOrder}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">ผล → คำสั่ง</div></div>`:'';
-  const box4=eligToOrd!==null?`<div class="day-box teal-box"><div class="day-num">${eligToOrd}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">วันที่แจ้งผลประเมิน<br>ถึง วันที่สสจ.ทำคำสั่ง</div></div>`:'';
-  if(isPend){
-    return `<div class="det-sec"><div class="det-sec-head"><i class="ti ti-refresh"></i> รอบที่ ${rnum} <span class="badge b-amber" style="font-size:11px">${lbl}</span></div>
-      <div class="pending-note"><i class="ti ti-clock"></i> อยู่ระหว่างดำเนินการแก้ไข · กำหนดส่ง: <span class="blink-date">${fmt(p.r1.deadline)}</span></div></div>`;
-  }
-  return `<div class="det-sec"><div class="det-sec-head"><i class="ti ti-${rnum===1?'file-text':'refresh'}"></i> รอบที่ ${rnum} <span class="badge ${bc}" style="font-size:11px">${lbl}</span></div>
-    ${r.submit?`<div class="dr"><span class="dl"><i class="ti ti-send"></i> วันที่ส่งผลงาน</span><span class="dv">${fmt(r.submit)}</span></div>`:''}
-    ${r.check?`<div class="dr"><span class="dl"><i class="ti ti-search"></i> สสจ. ตรวจสอบ</span><span class="dv">${r.check}</span></div>`:''}
-    ${r.sent?`<div class="dr"><span class="dl"><i class="ti ti-building"></i> วันที่ส่งหน่วยประเมิน</span><span class="dv">${fmt(r.sent)}</span></div>`:''}
-    ${r.result?`<div class="dr"><span class="dl"><i class="ti ti-checkbox"></i> ผลการพิจารณา</span><span class="dv">${r.result}</span></div>`:''}
-    ${r.resultDate?`<div class="dr"><span class="dl"><i class="ti ti-bell"></i> วันที่แจ้งผลกลับ</span><span class="dv">${fmt(r.resultDate)}</span></div>`:''}
-    ${dLine}
-    ${r.order?`<div class="dr"><span class="dl"><i class="ti ti-file-check"></i> ทำคำสั่ง</span><span class="dv" style="color:var(--teal)">${fmt(r.order)}</span></div>`:''}
-    ${(box1||box2||box3||box4)?`<div class="day-boxes">${box1}${box2}${box3}${box4}</div>`:''}
-  </div>`;
-}
-function buildModalBody(p){
-  return eligBoxHTML(p)+`<div style="margin-bottom:8px"><span class="badge b-brown" style="font-size:11px">${p.pos}</span></div>`+
-    roundSectionHTML(p.r1,1,p)+(p.r2?roundSectionHTML(p.r2,2,p):'');
-}
-
-// ===== STATE =====
-let chip1='all',chip2='all',yearFilter1='all',yearFilter2='all',activeKpi=null;
-let secOpen1=true,secOpen2=true;
-
-function toggleKpi(key){
-  document.querySelectorAll('.kpi-expand').forEach(e=>e.classList.remove('open'));
-  activeKpi=activeKpi===key?null:key;
-  if(activeKpi) document.getElementById('kx-'+activeKpi).classList.add('open');
-}
-function toggleSection(round,event){
-  if(event&&event.target.closest('.chip-bar')) return;
-  if(round===1){
-    secOpen1=!secOpen1;
-    document.getElementById('secbody1').classList.toggle('open',secOpen1);
-    document.getElementById('secchev1').classList.toggle('open',secOpen1);
-  } else {
-    secOpen2=!secOpen2;
-    document.getElementById('secbody2').classList.toggle('open',secOpen2);
-    document.getElementById('secchev2').classList.toggle('open',secOpen2);
-  }
-}
-function setChip(el,round){
-  const s=el.dataset.s;
-  if(round==='1')chip1=s;else chip2=s;
-  document.querySelectorAll(`[data-r="${round}"]`).forEach(c=>c.classList.remove('act'));
-  el.classList.add('act');renderLists();
-}
-function setYear(yr,round){
-  if(round==='1')yearFilter1=yr;else yearFilter2=yr;renderLists();
-}
-function filtered(){const pos=document.getElementById('posF').value;return DATA.filter(p=>!pos||p.pos===pos);}
-function matchC1(p,c){const s=getStatus(p);if(c==='all')return true;return c===s;}
-function matchC2(p,c){
-  if(!p.r2)return false;if(c==='all')return true;
-  if(c==='pass')return isPassR2(p);if(c==='fail')return isFailR2(p);
-  if(c==='pending')return isPendingR2(p);
-  if(c==='inprog')return !p.r2.order&&!isPendingR2(p)&&!isPassR2(p)&&!isFailR2(p);
-  return true;
-}
-function getYears(data){const s=new Set();data.forEach(p=>{const y=getEligYear(p);if(y)s.add(y);});return[...s].sort();}
-function yearPillsHTML(yrs,active,round){
-  return `<div class="ypill ${active==='all'?'act':''}" onclick="setYear('all','${round}')">ทั้งหมด</div>`+
-    yrs.map(y=>`<div class="ypill ${active==y?'act':''}" onclick="setYear(${y},'${round}')">${y}</div>`).join('');
-}
-function tableRow(p){
-  const ol=overallLabel(p);
-  const orderDate=p.r2&&p.r2.order?p.r2.order:p.r1&&p.r1.order?p.r1.order:'';
-  const dEO=getDaysFromEligToOrder(p);
-  return `<tr onclick="openModal(${p.id})" title="คลิกดูรายละเอียด">
-    <td><div style="display:flex;align-items:center;gap:10px">
-      <div class="av ${ol.av}" style="width:34px;height:34px;font-size:12px;flex-shrink:0">${ini(p.name)}</div>
-      <div><div class="tname">${p.name}</div><div class="tpos">${p.pos}</div></div>
-    </div></td>
-    <td class="td-center"><span class="badge ${ol.b}" style="font-size:11px">${ol.t}</span></td>
-    <td><div class="tdate ${p.eligibleDate?'':'na'}" style="display:flex;align-items:center;gap:4px"><i class="ti ti-star" style="font-size:11px;color:var(--teal)"></i>${p.eligibleDate||'—'}</div></td>
-    <td><div class="tdate ${orderDate?'':'na'}" style="display:flex;align-items:center;gap:4px"><i class="ti ti-file-check" style="font-size:11px;color:var(--text3)"></i>${orderDate||'—'}</div></td>
-    <td class="telig ${dEO!==null?'':'na'}">${dEO!==null?dEO+' วัน':'—'}</td>
-    <td class="td-center"><div style="display:flex;align-items:center;gap:5px;justify-content:center"><div class="dot ${ol.d}"></div><i class="ti ti-chevron-right" style="font-size:13px;color:var(--text3)"></i></div></td>
-  </tr>`;
-}
-
-// ===== KPI =====
-function renderKPI(data){
-  const total=data.length,pR1=data.filter(isPassR1),pR2=data.filter(isPassR2),pAll=data.filter(isPass);
-  const fAll=data.filter(isFail),fixAll=data.filter(isFixType);
-  const fix2=fixAll.filter(p=>p.r1.result.includes('ไม่เป็นสาระสำคัญ'));
-  const fix6=fixAll.filter(p=>p.r1.result.includes('เป็นสาระสำคัญ')&&!p.r1.result.includes('ไม่เป็น'));
-  document.getElementById('kpiRow').innerHTML=`
-    <div class="kpi-card c-gray"><div class="kpi-icon"><i class="ti ti-users" style="color:var(--text3)"></i></div><div class="kpi-label">ทั้งหมด</div><div class="kpi-num">${total}</div><div class="kpi-sub"><i class="ti ti-user"></i> ราย</div></div>
-    <div class="kpi-card c-green clickable" onclick="toggleKpi('pass')"><div class="kpi-icon"><i class="ti ti-award"></i></div><div class="kpi-label">ผ่านการประเมิน</div><div class="kpi-num">${pAll.length}</div><div class="kpi-sub"><i class="ti ti-chevron-down"></i> รอบ 1: ${pR1.length} · รอบ 2: ${pR2.length}</div></div>
-    <div class="kpi-card c-red"><div class="kpi-icon"><i class="ti ti-circle-x"></i></div><div class="kpi-label">ไม่ผ่านการประเมิน</div><div class="kpi-num">${fAll.length}</div><div class="kpi-sub">รอบ 1: ${data.filter(isFailR1).length} · รอบ 2: ${data.filter(isFailR2).length}</div></div>
-    <div class="kpi-card c-amber clickable" onclick="toggleKpi('fix')"><div class="kpi-icon"><i class="ti ti-pencil"></i></div><div class="kpi-label">รอแก้ไข</div><div class="kpi-num">${fixAll.length}</div><div class="kpi-sub"><i class="ti ti-chevron-down"></i> คลิกดูรายละเอียด</div></div>`;
-  document.getElementById('kx-pass-inner').innerHTML=`
-    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-circle-check"></i> ผ่านรอบที่ 1</div><div class="sub-card-num">${pR1.length} <span style="font-size:14px;color:var(--text3)">ราย</span></div></div>
-    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-refresh"></i> ผ่านรอบที่ 2</div><div class="sub-card-num teal">${pR2.length} <span style="font-size:14px;color:var(--text3)">ราย</span></div></div>`;
-  document.getElementById('kx-fix-inner').innerHTML=`
-    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-clock-2"></i> กำหนด 2 เดือน</div><div class="sub-card-num amber">${fix2.length} <span style="font-size:14px;color:var(--text3)">ราย</span></div></div>
-    <div class="sub-card"><div class="sub-card-label"><i class="ti ti-clock-2"></i> กำหนด 6 เดือน</div><div class="sub-card-num amber">${fix6.length} <span style="font-size:14px;color:var(--text3)">ราย</span></div></div>`;
-}
-
-// ===== LISTS =====
-function renderLists(){
-  const data=filtered(),yrs=getYears(data);
-  let r1f=data.filter(p=>matchC1(p,chip1));
-  if(yearFilter1!=='all') r1f=r1f.filter(p=>getEligYear(p)==yearFilter1);
-  let r2f=data.filter(p=>p.r2).filter(p=>matchC2(p,chip2));
-  if(yearFilter2!=='all') r2f=r2f.filter(p=>getEligYear(p)==yearFilter2);
-  const thead=`<table class="list-table"><thead><tr>
-    <th><i class="ti ti-user" style="font-size:11px"></i> ชื่อ — ตำแหน่ง</th>
-    <th><i class="ti ti-flag" style="font-size:11px"></i> สถานะ</th>
-    <th><i class="ti ti-star" style="font-size:11px"></i> ประกาศประเมินบุคคล</th>
-    <th><i class="ti ti-file-check" style="font-size:11px"></i> วันที่ทำคำสั่ง</th>
-    <th><i class="ti ti-clock" style="font-size:11px"></i> วันที่ใช้</th>
-    <th></th>
-  </tr></thead><tbody>`;
-
-  document.getElementById('mainList').innerHTML=`
-    <div class="section-card">
-      <div class="section-head" onclick="toggleSection(1,event)">
-        <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <div class="section-title"><i class="ti ti-file-text" style="color:var(--blue)"></i> รอบที่ 1 <span class="badge b-blue">${r1f.length} ราย</span></div>
-            <div class="chip-bar" onclick="event.stopPropagation()">
-              <div class="chip ${chip1==='all'?'act':''}" data-r="1" data-s="all" onclick="setChip(this,'1')">ทั้งหมด</div>
-              <div class="chip ${chip1==='pass'?'act':''}" data-r="1" data-s="pass" onclick="setChip(this,'1')"><i class="ti ti-check"></i> ผ่าน</div>
-              <div class="chip ${chip1==='fail'?'act':''}" data-r="1" data-s="fail" onclick="setChip(this,'1')"><i class="ti ti-x"></i> ไม่ผ่าน</div>
-              <div class="chip ${chip1==='fix'?'act':''}" data-r="1" data-s="fix" onclick="setChip(this,'1')"><i class="ti ti-pencil"></i> รอแก้ไข</div>
-              <div class="chip ${chip1==='inprog'?'act':''}" data-r="1" data-s="inprog" onclick="setChip(this,'1')"><i class="ti ti-loader"></i> ระหว่างดำเนิน</div>
-            </div>
-          </div>
-          <i class="ti ti-chevron-down sec-chevron ${secOpen1?'open':''}" id="secchev1"></i>
-        </div>
-      </div>
-      <div class="section-body ${secOpen1?'open':''}" id="secbody1">
-        <div class="list-filters">
-          <span class="list-filter-label"><i class="ti ti-calendar"></i> ปีที่ประกาศประเมินบุคคล</span>
-          <div style="display:flex;gap:5px;flex-wrap:wrap">${yearPillsHTML(yrs,yearFilter1,'1')}</div>
-        </div>
-        ${r1f.length?thead+r1f.map(tableRow).join('')+'</tbody></table>':'<div class="nodata"><i class="ti ti-mood-empty"></i> ไม่มีรายการ</div>'}
-      </div>
-    </div>
-    <div class="section-card">
-      <div class="section-head" onclick="toggleSection(2,event)">
-        <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <div class="section-title"><i class="ti ti-refresh" style="color:var(--purple)"></i> รอบที่ 2 <span class="badge b-purple">${r2f.length} ราย</span></div>
-            <div class="chip-bar" onclick="event.stopPropagation()">
-              <div class="chip ${chip2==='all'?'act':''}" data-r="2" data-s="all" onclick="setChip(this,'2')">ทั้งหมด</div>
-              <div class="chip ${chip2==='pass'?'act':''}" data-r="2" data-s="pass" onclick="setChip(this,'2')"><i class="ti ti-check"></i> ผ่าน</div>
-              <div class="chip ${chip2==='fail'?'act':''}" data-r="2" data-s="fail" onclick="setChip(this,'2')"><i class="ti ti-x"></i> ไม่ผ่าน</div>
-              <div class="chip ${chip2==='pending'?'act':''}" data-r="2" data-s="pending" onclick="setChip(this,'2')"><i class="ti ti-pencil"></i> กำลังแก้ไข</div>
-              <div class="chip ${chip2==='inprog'?'act':''}" data-r="2" data-s="inprog" onclick="setChip(this,'2')"><i class="ti ti-loader"></i> ระหว่างดำเนิน</div>
-            </div>
-          </div>
-          <i class="ti ti-chevron-down sec-chevron ${secOpen2?'open':''}" id="secchev2"></i>
-        </div>
-      </div>
-      <div class="section-body ${secOpen2?'open':''}" id="secbody2">
-        <div class="list-filters">
-          <span class="list-filter-label"><i class="ti ti-calendar"></i> ปีที่ประกาศประเมินบุคคล</span>
-          <div style="display:flex;gap:5px;flex-wrap:wrap">${yearPillsHTML(yrs,yearFilter2,'2')}</div>
-        </div>
-        ${r2f.length?thead+r2f.map(tableRow).join('')+'</tbody></table>':'<div class="nodata"><i class="ti ti-mood-empty"></i> ไม่มีรายการในรอบที่ 2</div>'}
-      </div>
-    </div>`;
 }
 
 function render(){yearFilter1='all';yearFilter2='all';renderKPI(filtered());renderLists();}
-
-// ===== INIT =====
+const now=new Date();
+const _ut=document.getElementById('updateTime');
+if(_ut) _ut.textContent='กำลังโหลด...';
 loadData();
+
 </script>
 </body>
 </html>
-o
