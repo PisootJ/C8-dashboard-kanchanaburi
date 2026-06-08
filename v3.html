@@ -356,6 +356,16 @@ document.body.appendChild(_ov);
 
 function dbg(m){ const el=document.getElementById('ldDbg'); if(el) el.innerHTML += '<div>→ '+m+'</div>'; console.log('[C8]',m); }
 
+// ========= PARSEDATE (needed for sort) =========
+function parseDate(s){
+  if(!s) return null;
+  const p=s.split('/');
+  if(p.length<3) return null;
+  let y=parseInt(p[2]);
+  if(y<100) y+=2500;
+  return new Date(y-543,parseInt(p[0])-1,parseInt(p[1]));
+}
+
 // ========= CSV PARSER =========
 function parseCSV(text){
   const rows=[]; let row=[],field='',inQ=false;
@@ -368,7 +378,7 @@ function parseCSV(text){
   return rows;
 }
 
-// ========= DATE CONVERSION =========
+// ========= DATE CONVERSION BE→display =========
 function cvtBE(d){
   if(!d||!d.trim())return'';
   const p=d.split('/'); if(p.length!==3)return d;
@@ -411,26 +421,24 @@ async function loadData(){
     clearTimeout(t);
     if(!r.ok) throw new Error('HTTP '+r.status);
     const text=await r.text();
-    if(text.trim().startsWith('<')) throw new Error('Sheet ไม่ public (ได้ HTML) — กด Share → Anyone with the link → Viewer');
+    if(text.trim().startsWith('<')) throw new Error('Sheet ไม่ public — กด Share → Anyone with the link → Viewer');
     dbg('CSV โหลดสำเร็จ: '+text.split('\n').length+' แถว');
     const allRows=parseCSV(text);
-    const dataRows=allRows.slice(2); // skip 2 header rows
+    const dataRows=allRows.slice(2);
     DATA=buildDataFromCSV(dataRows).sort((a,b)=>{
       const pa=a.r1&&a.r1.submit?a.r1.submit:''; const pb=b.r1&&b.r1.submit?b.r1.submit:'';
       const da=parseDate(pa),db=parseDate(pb);
       if(!da&&!db)return 0; if(!da)return 1; if(!db)return -1;
       return da-db;
     });
-    dbg('สร้าง DATA: '+DATA.length+' รายการ ✓');
+    dbg('DATA: '+DATA.length+' รายการ ✓');
 
-    // Update position filter
     const pos=[...new Set(DATA.map(p=>p.pos).filter(Boolean))].sort();
     const sel=document.getElementById('posF');
     if(sel){
       sel.innerHTML='<option value="">ทุกตำแหน่ง/ระดับ</option>'+pos.map(p=>'<option value="'+p+'">'+p+'</option>').join('');
     }
 
-    // Update time
     const now=new Date();
     const el=document.getElementById('updateTime');
     if(el) el.textContent='อัปเดตล่าสุด: '+now.getDate()+'/'+(now.getMonth()+1)+'/'+(now.getFullYear()+543)+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+' น. · '+DATA.length+' รายการ';
@@ -441,12 +449,11 @@ async function loadData(){
     console.error(e);
     if(err){ err.textContent='โหลดไม่สำเร็จ: '+e.message; err.style.display='block'; }
     if(btn) btn.style.display='block';
-    document.getElementById('ldTxt').textContent='โหลดข้อมูลไม่สำเร็จ';
+    if(document.getElementById('ldTxt')) document.getElementById('ldTxt').textContent='โหลดข้อมูลไม่สำเร็จ';
   }
 }
 
 function render(){yearFilter1='all';yearFilter2='all';renderKPI(filtered());renderLists();}
-const now=new Date();
 const _ut=document.getElementById('updateTime');
 if(_ut) _ut.textContent='กำลังโหลด...';
 loadData();
