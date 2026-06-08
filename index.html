@@ -393,31 +393,32 @@ function buildData(rows) {
     });
 }
 
-// ===== JSONP LOADER (no CORS issues) =====
+// ===== JSONP LOADER — ใช้ google.visualization.Query.setResponse (classic, reliable) =====
 function loadViaJSONP() {
   return new Promise((resolve, reject) => {
-    const cbName = '_gsCb' + Date.now();
     const timeoutId = setTimeout(() => {
-      delete window[cbName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-      reject(new Error('Timeout 15 วิ — ตรวจสอบว่า Google Sheet ตั้งค่า\n"Anyone with the link" → Viewer/Editor แล้ว'));
+      reject(new Error('Timeout 15 วิ — ตรวจสอบว่า Google Sheet ตั้งค่า "Anyone with the link" → Viewer/Editor แล้ว'));
     }, 15000);
 
-    window[cbName] = function(response) {
-      clearTimeout(timeoutId);
-      delete window[cbName];
-      if (!response || response.status === 'error') {
-        reject(new Error('Google Sheets ปฏิเสธคำขอ — ตรวจสอบ Public setting'));
-        return;
+    // Define the default gviz callback BEFORE loading the script
+    window.google = window.google || {};
+    window.google.visualization = window.google.visualization || {};
+    window.google.visualization.Query = {
+      setResponse: function(response) {
+        clearTimeout(timeoutId);
+        if (!response || response.status === 'error') {
+          const msg = (response && response.errors) ? response.errors.map(e => e.message).join(', ') : 'ไม่ทราบ';
+          reject(new Error('Google Sheets ปฏิเสธคำขอ: ' + msg + ' — ตรวจสอบ Public setting'));
+          return;
+        }
+        resolve(response.table);
       }
-      resolve(response.table);
     };
 
     const script = document.createElement('script');
-    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;handler:${cbName}`;
+    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
     script.onerror = () => {
       clearTimeout(timeoutId);
-      delete window[cbName];
       reject(new Error('โหลด script ไม่สำเร็จ — ตรวจสอบ Public setting'));
     };
     document.head.appendChild(script);
@@ -791,5 +792,4 @@ function renderLists(){
             <div class="chip-bar" onclick="event.stopPropagation()">
               <div class="chip ${chip1==='all'?'act':''}" data-r="1" data-s="all" onclick="setChip(this,'1')">ทั้งหมด</div>
               <div class="chip ${chip1==='pass'?'act':''}" data-r="1" data-s="pass" onclick="setChip(this,'1')"><i class="ti ti-check"></i> ผ่าน</div>
-              <div class="chip ${chip1==='fail'?'act':''}" data-r="1" data-s="fail" onclick="setChip(this,'1')"><i class="ti ti-x"></i> ไม่ผ่าน</div>
-              <div class="chip ${chip1==='fix'?'act':''}" data-r="1" data-s="fix" onclick="setChi
+              <div class="chip ${chip1==='f
