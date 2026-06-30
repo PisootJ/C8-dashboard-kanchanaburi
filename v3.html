@@ -700,7 +700,7 @@ function roundSectionHTML(r,rnum,p){
     ${r.check?`<div class="dr"><span class="dl" style="font-size:13px"><i class="ti ti-search"></i> สสจ. ตรวจสอบ</span><span class="dv" style="font-size:13px">${r.check}</span></div>`:''}
     ${r.sent?`<div class="dr"><span class="dl" style="font-size:13px"><i class="ti ti-building"></i> วันที่ส่งหน่วยประเมิน<br><span style="font-size:11px;color:var(--text3);font-weight:400;padding-left:20px">(นับจากวันที่สสจ.ออกหนังสือ)</span></span><span class="dv" style="font-size:13px">${fmt(r.sent)}</span></div>`:''}
     ${r.result?`<div class="dr"><span class="dl" style="font-size:13px"><i class="ti ti-checkbox"></i> ผลการพิจารณา</span><span class="dv" style="font-size:13px">${r.result}</span></div>`:''}
-    ${r.resultDate?`<div class="dr"><span class="dl" style="font-size:13px"><i class="ti ti-bell"></i> วันที่แจ้งผลกลับ</span><span class="dv" style="font-size:13px">${fmt(r.resultDate)}</span></div>`:''}
+    ${r.resultDate?`<div class="dr"><span class="dl" style="font-size:13px"><i class="ti ti-bell"></i> แจ้งผลการประเมินให้สสจ.</span><span class="dv" style="font-size:13px">${fmt(r.resultDate)}</span></div>`:''}
     ${dLine}
     ${r.order?`<div class="dr"><span class="dl" style="font-size:13px"><i class="ti ti-file-check"></i> ทำคำสั่ง</span><span class="dv" style="font-size:13px;color:var(--teal)">${fmt(r.order)}</span></div>`:''}
     ${(box1||box2||box3||box4)?`<div class="day-boxes">${box1}${box2}${box3}${box4}</div>`:''}
