@@ -545,6 +545,7 @@ function overallLabel(p){
     return {t:is6?'ส่งรอบ 2 (6 เดือน)':'ส่งรอบ 2 (2 เดือน)',b:'b-purple',d:'d-p',av:'av-p'};
   }
   // แสดงสถานะตามขั้นตอนจริงของ workflow
+  if(p.r1&&p.r1.resultDate) return {t:'แจ้งผลการประเมินให้สสจ.',b:'b-teal',d:'d-t',av:'av-t'};
   if(p.r1&&p.r1.result&&p.r1.result.includes('อยู่ระหว่าง')) return {t:'อยู่ระหว่างพิจารณาโดยหน่วยงานนอกจังหวัด',b:'b-purple',d:'d-p',av:'av-p'};
   if(p.r1&&p.r1.sent) return {t:'ส่งหน่วยประเมินแล้ว',b:'b-teal',d:'d-t',av:'av-t'};
   if(p.r1&&p.r1.check&&p.r1.check.includes('ส่งคืน')) return {t:'สสจ.ตรวจสอบแล้ว ส่งคืนแก้ไข',b:'b-amber',d:'d-a',av:'av-a'};
