@@ -774,32 +774,18 @@ function renderLists(){
 
 function render(){yearFilter1='all';yearFilter2='all';renderKPI(filtered());renderLists();}
 // ========= AUTO REFRESH =========
-const REFRESH_MIN = 3; // รีเฟรชทุก 3 นาที
+const REFRESH_MIN = 3;
 let _nextRefresh = Date.now() + REFRESH_MIN * 60000;
 
-function _startRefreshTimer() {
-  clearInterval(window._refreshInterval);
-  _nextRefresh = Date.now() + REFRESH_MIN * 60000;
-  window._refreshInterval = setInterval(() => {
-    const left = Math.max(0, Math.ceil((_nextRefresh - Date.now()) / 1000));
-    const cdEl = document.getElementById('countdown');
-    if (cdEl) cdEl.textContent = `· รีเฟรชใน ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')} น.`;
-    if (Date.now() >= _nextRefresh) {
-      _nextRefresh = Date.now() + REFRESH_MIN * 60000;
-      loadData();
-    }
-  }, 1000);
-}
-
-// Patch loadData to update timestamp and restart timer after load
-const _origLoadData = loadData;
-async function loadData() {
-  await _origLoadData();
-  const now = new Date();
-  const el = document.getElementById('updateTime');
-  if (el) el.textContent = `อัปเดตล่าสุด: ${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()+543} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} น.`;
-  _startRefreshTimer();
-}
+setInterval(() => {
+  const left = Math.max(0, Math.ceil((_nextRefresh - Date.now()) / 1000));
+  const cdEl = document.getElementById('countdown');
+  if (cdEl) cdEl.textContent = `· รีเฟรชใน ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')} น.`;
+  if (Date.now() >= _nextRefresh) {
+    _nextRefresh = Date.now() + REFRESH_MIN * 60000;
+    loadData();
+  }
+}, 1000);
 
 loadData();
 
