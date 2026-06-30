@@ -536,7 +536,13 @@ function overallLabel(p){
     if(!hasSentR2(p)||isPendingR2(p)) return {t:is6?'กำลังแก้ไข (6 เดือน)':'กำลังแก้ไข (2 เดือน)',b:'b-amber',d:'d-a',av:'av-a'};
     return {t:is6?'ส่งรอบ 2 (6 เดือน)':'ส่งรอบ 2 (2 เดือน)',b:'b-purple',d:'d-p',av:'av-p'};
   }
-  return {t:'ระหว่างดำเนินงาน',b:'b-blue',d:'d-b',av:'av-b'};
+  // แสดงสถานะตามขั้นตอนจริงของ workflow
+  if(p.r1&&p.r1.result&&p.r1.result.includes('อยู่ระหว่าง')) return {t:'อยู่ระหว่างพิจารณา',b:'b-blue',d:'d-b',av:'av-b'};
+  if(p.r1&&p.r1.sent) return {t:'ส่งหน่วยประเมินแล้ว',b:'b-blue',d:'d-b',av:'av-b'};
+  if(p.r1&&p.r1.check&&p.r1.check.includes('ส่งคืน')) return {t:'ส่งคืนแก้ไขเอกสาร',b:'b-amber',d:'d-a',av:'av-a'};
+  if(p.r1&&p.r1.check&&p.r1.check.includes('ผ่าน')) return {t:'ตรวจสอบผ่านแล้ว',b:'b-blue',d:'d-b',av:'av-b'};
+  if(p.r1&&p.r1.submit) return {t:'รอตรวจสอบเอกสาร',b:'b-blue',d:'d-b',av:'av-b'};
+  return {t:'ยังไม่ส่งผลงาน',b:'b-blue',d:'d-b',av:'av-b'};
 }
 function getR1Lbl(r){
   if(!r) return '—';
