@@ -376,9 +376,9 @@ function _cvt(d){
   if(!d||!d.trim())return'';
   const p=d.split('/');if(p.length!==3)return d;
   let y=parseInt(p[2]);if(isNaN(y))return d;
-  if(y>=2500)y=y-2500;          // BE 4 หลัก (2568→68)
-  else if(y>=2000)y=y-2000+43;  // CE 4 หลัก (2025→68)
-  else if(y<100)y=y+43;         // CE 2 หลัก (25→68)
+  if(y>=2500) return p[0]+'/'+p[1]+'/'+y;  // BE 4 หลัก → คงไว้ (2569)
+  if(y>=2000) y=y+543;                      // CE 4 หลัก → BE (2025→2568)
+  else y=(2000+y)+543;                      // CE 2 หลัก → BE (25→2568)
   return p[0]+'/'+p[1]+'/'+y;
 }
 
