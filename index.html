@@ -510,6 +510,14 @@ function getDaysFromEligToOrder(p){
   const ord=p.r2&&p.r2.order?parseDate(p.r2.order):p.r1&&p.r1.order?parseDate(p.r1.order):null;
   return ord?diffDays(elig,ord):null;
 }
+function fmtDays(n){
+  if(n===null||n===undefined) return '';
+  const m=Math.floor(n/30), d=n%30;
+  if(m===0) return d+' วัน';
+  if(d===0) return m+' เดือน';
+  return m+' เดือน '+d+' วัน';
+}
+
 
 // ========= STATUS =========
 function isPassR1(p){return p.r1&&p.r1.result&&p.r1.result.includes('ผ่านการประเมิน')&&!p.r1.result.includes('ไม่ผ่าน');}
@@ -673,15 +681,15 @@ function roundSectionHTML(r,rnum,p){
   const eligToSent=(elig&&se)?diffDays(elig,se):null;
   // กล่อง 2: จำนวนวันที่หน่วยประเมินอ่านผลงาน (ส่งหน่วย → ผล)
   const sentToResult=(se&&rd)?diffDays(se,rd):null;
-  // กล่อง 3: วัน · ผล → คำสั่ง
+  // กล่อง 3: ผล → คำสั่ง
   const resultToOrder=(rd&&od)?diffDays(rd,od):null;
   // กล่อง 4 teal: วันที่แจ้งผลประเมิน ถึง วันที่สสจ.ทำคำสั่ง (ประกาศ → คำสั่ง)
   const eligToOrd=(elig&&od)?diffDays(elig,od):null;
 
-  const box1=eligToSent!==null?`<div class="day-box"><div class="day-num">${eligToSent}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">วัน · ประกาศประเมิน<br>→ ส่งหน่วยประเมิน</div></div>`:'';
-  const box2=sentToResult!==null?`<div class="day-box"><div class="day-num">${sentToResult}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">วัน · จำนวนวันที่หน่วยประเมิน<br>อ่านผลงาน</div></div>`:'';
-  const box3=resultToOrder!==null?`<div class="day-box"><div class="day-num">${resultToOrder}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">วัน · ผล → คำสั่ง</div></div>`:'';
-  const box4=eligToOrd!==null?`<div class="day-box teal-box"><div class="day-num">${eligToOrd}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">วัน · วันที่แจ้งผลประเมิน<br>ถึง วันที่สสจ.ทำคำสั่ง</div></div>`:'';
+  const box1=eligToSent!==null?`<div class="day-box"><div class="day-num" style="font-size:18px">${fmtDays(eligToSent)}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">ประกาศประเมิน → ส่งหน่วยประเมิน</div></div>`:'';
+  const box2=sentToResult!==null?`<div class="day-box"><div class="day-num" style="font-size:18px">${fmtDays(sentToResult)}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">จำนวนวันที่หน่วยประเมินอ่านผลงาน</div></div>`:'';
+  const box3=resultToOrder!==null?`<div class="day-box"><div class="day-num" style="font-size:18px">${fmtDays(resultToOrder)}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">ผล → คำสั่ง</div></div>`:'';
+  const box4=eligToOrd!==null?`<div class="day-box teal-box"><div class="day-num" style="font-size:18px">${fmtDays(eligToOrd)}</div><div class="day-lbl" style="white-space:normal;line-height:1.3">วันที่แจ้งผลประเมิน<br>ถึง วันที่สสจ.ทำคำสั่ง</div></div>`:'';
 
   if(isPend){
     return `<div class="det-sec"><div class="det-sec-head"><i class="ti ti-refresh"></i> รอบที่ ${rnum} <span class="badge b-amber" style="font-size:11px">${lbl}</span></div>
