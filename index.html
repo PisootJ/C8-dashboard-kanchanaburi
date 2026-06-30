@@ -237,6 +237,7 @@ select:focus{outline:none;border-color:var(--brown)}
 
 .nodata{text-align:center;padding:2.5rem;color:var(--text3);font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px}
 .update-time{font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace;padding:.75rem 2rem;border-top:1px solid var(--border);margin-top:1rem}
+.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#4CAF50;margin-right:6px;animation:pulse 2s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}.countdown{font-size:11px;color:var(--text3);margin-left:12px}
 /* section collapse */
 .section-head{cursor:pointer;transition:background .15s;user-select:none}
 .section-head:hover{background:var(--surface2)}
@@ -338,7 +339,7 @@ select:focus{outline:none;border-color:var(--brown)}
 
   <div id="mainList"></div>
 </main>
-<div class="update-time" id="updateTime"></div>
+<div class="update-time"><span class="live-dot"></span><span id="updateTime"></span><span class="countdown" id="countdown"></span></div>
 
 <script>
 // ========= DATA =========
@@ -772,8 +773,34 @@ function renderLists(){
 }
 
 function render(){yearFilter1='all';yearFilter2='all';renderKPI(filtered());renderLists();}
-const now=new Date();
-document.getElementById('updateTime').textContent=`อัปเดตล่าสุด: ${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()+543}`;
+// ========= AUTO REFRESH =========
+const REFRESH_MIN = 3; // รีเฟรชทุก 3 นาที
+let _nextRefresh = Date.now() + REFRESH_MIN * 60000;
+
+function _startRefreshTimer() {
+  clearInterval(window._refreshInterval);
+  _nextRefresh = Date.now() + REFRESH_MIN * 60000;
+  window._refreshInterval = setInterval(() => {
+    const left = Math.max(0, Math.ceil((_nextRefresh - Date.now()) / 1000));
+    const cdEl = document.getElementById('countdown');
+    if (cdEl) cdEl.textContent = `· รีเฟรชใน ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')} น.`;
+    if (Date.now() >= _nextRefresh) {
+      _nextRefresh = Date.now() + REFRESH_MIN * 60000;
+      loadData();
+    }
+  }, 1000);
+}
+
+// Patch loadData to update timestamp and restart timer after load
+const _origLoadData = loadData;
+async function loadData() {
+  await _origLoadData();
+  const now = new Date();
+  const el = document.getElementById('updateTime');
+  if (el) el.textContent = `อัปเดตล่าสุด: ${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()+543} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} น.`;
+  _startRefreshTimer();
+}
+
 loadData();
 
 </script>
