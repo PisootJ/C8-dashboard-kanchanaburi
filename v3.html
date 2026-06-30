@@ -376,7 +376,9 @@ function _cvt(d){
   if(!d||!d.trim())return'';
   const p=d.split('/');if(p.length!==3)return d;
   let y=parseInt(p[2]);if(isNaN(y))return d;
-  if(y>=2000)y=y-2000+43;else if(y<100)y=y+43;
+  if(y>=2500)y=y-2500;          // BE 4 หลัก (2568→68)
+  else if(y>=2000)y=y-2000+43;  // CE 4 หลัก (2025→68)
+  else if(y<100)y=y+43;         // CE 2 หลัก (25→68)
   return p[0]+'/'+p[1]+'/'+y;
 }
 
