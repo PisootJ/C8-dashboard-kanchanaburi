@@ -237,7 +237,6 @@ select:focus{outline:none;border-color:var(--brown)}
 
 .nodata{text-align:center;padding:2.5rem;color:var(--text3);font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px}
 .update-time{font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace;padding:.75rem 2rem;border-top:1px solid var(--border);margin-top:1rem}
-.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#4CAF50;margin-right:6px;animation:pulse 2s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}.countdown{font-size:11px;color:var(--text3);margin-left:12px}
 /* section collapse */
 .section-head{cursor:pointer;transition:background .15s;user-select:none}
 .section-head:hover{background:var(--surface2)}
@@ -339,7 +338,7 @@ select:focus{outline:none;border-color:var(--brown)}
 
   <div id="mainList"></div>
 </main>
-<div class="update-time"><span class="live-dot"></span><span id="updateTime"></span><span class="countdown" id="countdown"></span></div>
+<div class="update-time" id="updateTime"></div>
 
 <script>
 // ========= DATA =========
@@ -381,44 +380,115 @@ function _cvt(d){
   return p[0]+'/'+p[1]+'/'+y;
 }
 
+// JSONP fallback (for networks that block direct CSV fetch)
+function _loadViaJSONP() {
+  return new Promise((resolve, reject) => {
+    const cb = "_gviz_" + Date.now();
+    const tid = setTimeout(() => { delete window[cb]; reject(new Error("JSONP timeout")); }, 12000);
+    window[cb] = function(r) {
+      clearTimeout(tid); delete window[cb];
+      if (!r || r.status !== "ok") { reject(new Error("gviz: " + JSON.stringify(r && r.errors))); return; }
+      const cols = r.table.cols || [];
+      const dataRows = (r.table.rows || []).map(function(row) {
+        return cols.map(function(c, i) {
+          return (row.c && row.c[i] && row.c[i].v != null) ? String(row.c[i].v) : "";
+        });
+      });
+      resolve(dataRows);
+    };
+    const s = document.createElement("script");
+    s.onerror = function() { clearTimeout(tid); delete window[cb]; reject(new Error("JSONP script error")); };
+    s.src = "https://docs.google.com/spreadsheets/d/1hbXCaO8spDuEJ8Yqji4YcWUmuKkYEHX4QmWgewGZ3zg/gviz/tq?tqx=out:json;handler=" + cb;
+    document.head.appendChild(s);
+  });
+}
+
+// JSONP fallback
+function _loadViaJSONP() {
+  return new Promise(function(resolve, reject) {
+    var cb = "_gviz_" + Date.now();
+    var tid = setTimeout(function() { delete window[cb]; reject(new Error("JSONP timeout 12s")); }, 12000);
+    window[cb] = function(r) {
+      clearTimeout(tid); delete window[cb];
+      if (!r || r.status !== "ok") { reject(new Error("gviz: " + JSON.stringify(r && r.errors))); return; }
+      var cols = r.table.cols || [];
+      var dataRows = (r.table.rows || []).map(function(row) {
+        return cols.map(function(c, i) {
+          return (row.c && row.c[i] && row.c[i].v != null) ? String(row.c[i].v) : "";
+        });
+      });
+      resolve(dataRows);
+    };
+    var s = document.createElement("script");
+    s.onerror = function() { clearTimeout(tid); delete window[cb]; reject(new Error("JSONP script error")); };
+    s.src = "https://docs.google.com/spreadsheets/d/1hbXCaO8spDuEJ8Yqji4YcWUmuKkYEHX4QmWgewGZ3zg/gviz/tq?tqx=out:json;handler=" + cb;
+    document.head.appendChild(s);
+  });
+}
+
 async function loadData(){
-  const ov=document.getElementById('ldOv'),eEl=document.getElementById('ldE'),bEl=document.getElementById('ldB'),dEl=document.getElementById('ldD'),tEl=document.getElementById('ldT');
-  if(ov)ov.style.display='flex';if(eEl)eEl.style.display='none';if(bEl)bEl.style.display='none';if(dEl)dEl.innerHTML='';if(tEl)tEl.textContent='กำลังโหลดข้อมูล...';
+  const ov=document.getElementById("ldOv"),eEl=document.getElementById("ldE"),bEl=document.getElementById("ldB"),dEl=document.getElementById("ldD"),tEl=document.getElementById("ldT");
+  if(ov)ov.style.display="flex";if(eEl)eEl.style.display="none";if(bEl)bEl.style.display="none";if(dEl)dEl.innerHTML="";if(tEl)tEl.textContent="กำลังโหลดข้อมูล...";
   try{
-    _dbg('โหลด CSV จาก Google Sheets...');
-    const url='https://docs.google.com/spreadsheets/d/1hbXCaO8spDuEJ8Yqji4YcWUmuKkYEHX4QmWgewGZ3zg/export?format=csv&gid=0';
-    const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),15000);
-    const res=await fetch(url,{signal:ctrl.signal});clearTimeout(tid);
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const txt=await res.text();
-    if(txt.trim().startsWith('<'))throw new Error('Sheet ไม่ public');
-    _dbg('CSV ✓ ('+txt.split('\n').length+' แถว)');
-    const rows=_parseCSV(txt).slice(2);
-    DATA=rows.filter(c=>c.length>=3&&c[1]&&c[1].trim()).map((c,i)=>{
-      const g=j=>(c[j]||'').trim();
+    let rows;
+    try {
+      _dbg("วิธีที่ 1: CSV โดยตรง...");
+      const url="https://docs.google.com/spreadsheets/d/1hbXCaO8spDuEJ8Yqji4YcWUmuKkYEHX4QmWgewGZ3zg/export?format=csv&gid=0";
+      const ctrl=new AbortController(), tid2=setTimeout(function(){ctrl.abort();},8000);
+      const res=await fetch(url,{signal:ctrl.signal}); clearTimeout(tid2);
+      if(!res.ok) throw new Error("HTTP "+res.status);
+      const txt=await res.text();
+      if(txt.trim().startsWith("<")) throw new Error("ได้ HTML แทน CSV");
+      _dbg("CSV ✓ ("+txt.split("\n").length+" แถว)");
+      rows=_parseCSV(txt).slice(2);
+    } catch(e1) {
+      _dbg("วิธีที่ 1 ล้มเหลว: "+e1.message);
+      _dbg("วิธีที่ 2: JSONP...");
+      const jsonpRows = await _loadViaJSONP();
+      _dbg("JSONP ✓ ("+jsonpRows.length+" แถว)");
+      rows = jsonpRows;
+    }
+    DATA=rows.filter(function(c){return c.length>=3&&c[1]&&c[1].trim();}).map(function(c,i){
+      const g=function(j){return(c[j]||"").trim();};
       const r2s=g(12),r2c=g(13),r2e=g(14),r2r=g(15),r2d=g(16),r2o=g(17);
       const hr2=r2s||r2c||r2e||r2r||r2d||r2o;
       return {id:i+1,name:g(1),pos:g(2),eligibleDate:_cvt(g(3)),
         r1:{submit:_cvt(g(4)),check:g(5),sent:_cvt(g(6)),result:g(7),resultDate:_cvt(g(8)),deadline:_cvt(g(9)),order:_cvt(g(10))},
         r2:hr2?{submit:_cvt(r2s),check:r2c,sent:_cvt(r2e),result:r2r,resultDate:_cvt(r2d),order:_cvt(r2o)}:null,
         note:g(11)};
-    }).sort((a,b)=>{
-      const da=parseDate(a.r1&&a.r1.submit||''),db=parseDate(b.r1&&b.r1.submit||'');
+    }).sort(function(a,b){
+      const da=parseDate(a.r1&&a.r1.submit||""),db=parseDate(b.r1&&b.r1.submit||"");
       if(!da&&!db)return 0;if(!da)return 1;if(!db)return-1;return da-db;
     });
-    _dbg('DATA ✓ '+DATA.length+' รายการ');
-    const pos=[...new Set(DATA.map(p=>p.pos).filter(Boolean))].sort();
-    const sel=document.getElementById('posF');
-    if(sel)sel.innerHTML='<option value="">ทุกตำแหน่ง/ระดับ</option>'+pos.map(p=>'<option value="'+p+'">'+p+'</option>').join('');
-    if(ov)ov.style.display='none';
+    _dbg("DATA ✓ "+DATA.length+" รายการ");
+    const pos=[...new Set(DATA.map(function(p){return p.pos;}).filter(Boolean))].sort();
+    const sel=document.getElementById("posF");
+    if(sel)sel.innerHTML="<option value=\"\">" + "ทุกตำแหน่ง/ระดับ</option>"+pos.map(function(p){return "<option value=\""+p+"\">"+p+"</option>";}).join("");
+    const now=new Date();
+    const utEl=document.getElementById("updateTime");
+    if(utEl)utEl.textContent="อัปเดตล่าสุด: "+now.getDate()+"/"+(now.getMonth()+1)+"/"+(now.getFullYear()+543)+" "+String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0")+" น.";
+    if(ov)ov.style.display="none";
     render();
   }catch(e){
     console.error(e);
-    if(eEl){eEl.textContent='โหลดไม่สำเร็จ: '+e.message;eEl.style.display='block';}
-    if(bEl)bEl.style.display='block';
-    if(tEl)tEl.textContent='โหลดข้อมูลไม่สำเร็จ';
+    if(eEl){eEl.textContent="โหลดไม่สำเร็จ: "+e.message;eEl.style.display="block";}
+    if(bEl)bEl.style.display="block";
+    if(tEl)tEl.textContent="โหลดข้อมูลไม่สำเร็จ";
   }
 }
+
+// Auto-refresh ทุก 3 นาที
+var _REFRESH_MS = 3 * 60 * 1000;
+var _nextRefresh = Date.now() + _REFRESH_MS;
+setInterval(function() {
+  var left = Math.max(0, Math.ceil((_nextRefresh - Date.now()) / 1000));
+  var cdEl = document.getElementById("countdown");
+  if(cdEl) cdEl.textContent = " · รีเฟรชใน " + Math.floor(left/60) + ":" + String(left%60).padStart(2,"0") + " น.";
+  if(Date.now() >= _nextRefresh) {
+    _nextRefresh = Date.now() + _REFRESH_MS;
+    loadData();
+  }
+}, 1000);
 
 // ========= UTILS =========
 function parseDate(s){
@@ -773,20 +843,8 @@ function renderLists(){
 }
 
 function render(){yearFilter1='all';yearFilter2='all';renderKPI(filtered());renderLists();}
-// ========= AUTO REFRESH =========
-const REFRESH_MIN = 3;
-let _nextRefresh = Date.now() + REFRESH_MIN * 60000;
-
-setInterval(() => {
-  const left = Math.max(0, Math.ceil((_nextRefresh - Date.now()) / 1000));
-  const cdEl = document.getElementById('countdown');
-  if (cdEl) cdEl.textContent = `· รีเฟรชใน ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')} น.`;
-  if (Date.now() >= _nextRefresh) {
-    _nextRefresh = Date.now() + REFRESH_MIN * 60000;
-    loadData();
-  }
-}, 1000);
-
+const now=new Date();
+document.getElementById('updateTime').textContent=`อัปเดตล่าสุด: ${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()+543}`;
 loadData();
 
 </script>
